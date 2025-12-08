@@ -1,5 +1,6 @@
 import prisma from '../config/database';
 import { Warehouse } from '../types/order.types';
+import { Prisma } from '@prisma/client';
 
 /**
  * Get all warehouses
@@ -23,7 +24,10 @@ export async function getWarehouseById(id: string): Promise<Warehouse | null> {
 export async function updateWarehouseStock(
   warehouseId: string,
   quantity: number,
-  tx?: any
+  tx?: Omit<
+    Prisma.TransactionClient,
+    '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+  >
 ): Promise<void> {
   const client = tx || prisma;
   await client.warehouse.update({

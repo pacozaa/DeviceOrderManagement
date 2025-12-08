@@ -87,7 +87,7 @@ export const getOrderHandler = async (
  * Get all warehouses with current stock
  */
 export const getWarehousesHandler = async (
-  req: Request,
+  _: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {

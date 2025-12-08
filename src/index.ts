@@ -54,10 +54,12 @@ app.use((_, res) => {
 // Error handler
 app.use(errorHandler);
 
-const PORT = config.port;
-
-app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT} in ${config.nodeEnv} mode`);
-});
+// Only start the server if this file is run directly (not imported for tests)
+if (require.main === module) {
+  const PORT = config.port;
+  app.listen(PORT, () => {
+    logger.info(`Server running on port ${PORT} in ${config.nodeEnv} mode`);
+  });
+}
 
 export default app;
