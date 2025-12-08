@@ -66,24 +66,9 @@ A production-ready backend system for managing SCOS device orders with intellige
    cp .env.example .env
    ```
 
-3. **Start PostgreSQL** (ensure it's running on localhost:5432)
-   
-   **Option A: Using Docker**
+3. **Start PostgreSQL using Docker Compose**
    ```bash
-   docker run -d \
-     --name screncloud-postgres \
-     -e POSTGRES_USER=postgres \
-     -e POSTGRES_PASSWORD=postgres \
-     -e POSTGRES_DB=screncloud \
-     -p 5432:5432 \
-     postgres:15-alpine
-   ```
-   
-   **Option B: Using existing PostgreSQL installation**
-   
-   Ensure PostgreSQL is running and create the database:
-   ```bash
-   createdb screncloud
+   docker compose up -d postgres
    ```
 
 4. **Run database migrations**
