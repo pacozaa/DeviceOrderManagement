@@ -2,13 +2,13 @@
 
 ## Core Requirements
 - **Language**: TypeScript
-- **Database**: PostgreSQL or MySQL (for relational data integrity)
-- **API**: REST or GraphQL
+- **Database**: PostgreSQL
+- **API**: REST
 
 ## Recommended Stack
 
 ### Runtime & Framework
-- **Node.js** (v18+) with Express or Fastify
+- **Node.js** (v18+) with Express
 - Avoid opinionated frameworks like NestJS per requirements
 
 ### Database & ORM
