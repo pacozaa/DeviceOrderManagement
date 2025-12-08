@@ -59,6 +59,7 @@ if (require.main === module) {
   const PORT = config.port;
   app.listen(PORT, () => {
     logger.info(`Server running on port ${PORT} in ${config.nodeEnv} mode`);
+    logger.info(`OpenAPI Swagger UI available at http://localhost:${PORT}/api-docs`);
   });
 }
 

@@ -1,0 +1,427 @@
+{
+  "info": {
+    "name": "ScreenCloud Order Management API",
+    "description": "Collection for testing the ScreenCloud Order Management System API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "orderNumber",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Check if the API is running and healthy"
+      },
+      "response": []
+    },
+    {
+      "name": "Verify Order - Small Quantity (No Discount)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 10,\n  \"shippingAddress\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/verify",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "verify"]
+        },
+        "description": "Verify an order without submitting it. This checks pricing, discounts, and shipping costs for 10 units (no discount)."
+      },
+      "response": []
+    },
+    {
+      "name": "Verify Order - 5% Discount (25+ units)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 30,\n  \"shippingAddress\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/verify",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "verify"]
+        },
+        "description": "Verify order with 30 units to get 5% discount (25+ units threshold)."
+      },
+      "response": []
+    },
+    {
+      "name": "Verify Order - 10% Discount (50+ units)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 50,\n  \"shippingAddress\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/verify",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "verify"]
+        },
+        "description": "Verify order with 50 units to get 10% discount (50+ units threshold). Shipping to New York coordinates."
+      },
+      "response": []
+    },
+    {
+      "name": "Verify Order - 15% Discount (100+ units)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 100,\n  \"shippingAddress\": {\n    \"latitude\": 33.9425,\n    \"longitude\": -118.408056\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/verify",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "verify"]
+        },
+        "description": "Verify order with 100 units to get 15% discount (100+ units threshold). Shipping to Los Angeles coordinates."
+      },
+      "response": []
+    },
+    {
+      "name": "Verify Order - 20% Discount (250+ units)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 250,\n  \"shippingAddress\": {\n    \"latitude\": 49.009722,\n    \"longitude\": 2.547778\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/verify",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "verify"]
+        },
+        "description": "Verify order with 250 units to get 20% discount (250+ units threshold). Shipping to Paris coordinates."
+      },
+      "response": []
+    },
+    {
+      "name": "Verify Order - Multi-Warehouse Allocation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 500,\n  \"shippingAddress\": {\n    \"latitude\": 22.308889,\n    \"longitude\": 113.914444\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/verify",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "verify"]
+        },
+        "description": "Verify large order that requires allocation from multiple warehouses. Shipping to Hong Kong coordinates."
+      },
+      "response": []
+    },
+    {
+      "name": "Verify Order - São Paulo Location",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 75,\n  \"shippingAddress\": {\n    \"latitude\": -23.435556,\n    \"longitude\": -46.473056\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/verify",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "verify"]
+        },
+        "description": "Verify order shipping to São Paulo warehouse coordinates."
+      },
+      "response": []
+    },
+    {
+      "name": "Submit Order - Small",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    if (response.success && response.data.orderNumber) {",
+              "        pm.collectionVariables.set('orderNumber', response.data.orderNumber);",
+              "        console.log('Order number saved:', response.data.orderNumber);",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 5,\n  \"shippingAddress\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/orders",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders"]
+        },
+        "description": "Submit a small order (5 units) to New York. This will save the order number to use in subsequent requests."
+      },
+      "response": []
+    },
+    {
+      "name": "Submit Order - With Discount",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    if (response.success && response.data.orderNumber) {",
+              "        pm.collectionVariables.set('orderNumber', response.data.orderNumber);",
+              "        console.log('Order number saved:', response.data.orderNumber);",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 50,\n  \"shippingAddress\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/orders",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders"]
+        },
+        "description": "Submit an order with 50 units to get 10% discount. Order number will be saved for retrieval."
+      },
+      "response": []
+    },
+    {
+      "name": "Submit Order - Large Order",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    if (response.success && response.data.orderNumber) {",
+              "        pm.collectionVariables.set('orderNumber', response.data.orderNumber);",
+              "        console.log('Order number saved:', response.data.orderNumber);",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 150,\n  \"shippingAddress\": {\n    \"latitude\": 49.009722,\n    \"longitude\": 2.547778\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/orders",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders"]
+        },
+        "description": "Submit a large order (150 units) to Paris with 15% discount."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Order Details",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/{{orderNumber}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "{{orderNumber}}"]
+        },
+        "description": "Retrieve details of a previously submitted order using the order number saved from a submit request."
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Warehouses",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/warehouses/list",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "warehouses", "list"]
+        },
+        "description": "Retrieve list of all warehouses with their locations and current stock levels."
+      },
+      "response": []
+    },
+    {
+      "name": "Invalid Order - Negative Quantity",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": -5,\n  \"shippingAddress\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/verify",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "verify"]
+        },
+        "description": "Test validation error handling with negative quantity."
+      },
+      "response": []
+    },
+    {
+      "name": "Invalid Order - Invalid Coordinates",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 10,\n  \"shippingAddress\": {\n    \"latitude\": 200,\n    \"longitude\": -74.0060\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/verify",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "verify"]
+        },
+        "description": "Test validation error handling with invalid latitude (must be between -90 and 90)."
+      },
+      "response": []
+    },
+    {
+      "name": "Invalid Order - Missing Fields",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 10\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/verify",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "verify"]
+        },
+        "description": "Test validation error handling with missing shipping address."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Order - Non-existent",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/ORD-0000000000-000",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "ORD-0000000000-000"]
+        },
+        "description": "Test error handling when retrieving a non-existent order."
+      },
+      "response": []
+    }
+  ]
+}
