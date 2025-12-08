@@ -4,10 +4,10 @@ import {
   calculateDiscountAmount,
   calculateTotal,
   isShippingCostValid,
-} from '../../services/pricingService';
+} from '../../../services/pricing';
 
 // Mock config
-jest.mock('../../config/config', () => ({
+jest.mock('../../../config/config', () => ({
   config: {
     device: {
       price: 150,

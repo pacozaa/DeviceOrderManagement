@@ -1,6 +1,6 @@
-import { Warehouse, OrderAllocation } from '../types/order.types';
-import { Coordinates, calculateDistance, calculateShippingCost } from '../utils/geoUtils';
-import { config } from '../config/config';
+import { Warehouse, OrderAllocation } from '../../types/order.types';
+import { Coordinates, calculateDistance, calculateShippingCost } from '../../utils/geoUtils';
+import { config } from '../../config/config';
 
 interface WarehouseWithDistance extends Warehouse {
   distance: number;
@@ -68,11 +68,4 @@ export function calculateOptimalAllocation(
   }
 
   return allocations;
-}
-
-/**
- * Calculate total shipping cost from allocations
- */
-export function calculateTotalShippingCost(allocations: OrderAllocation[]): number {
-  return allocations.reduce((sum, allocation) => sum + allocation.shippingCost, 0);
 }

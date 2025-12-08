@@ -1,9 +1,9 @@
-import { calculateOptimalAllocation } from '../../services/allocationService';
-import { Warehouse } from '../../types/order.types';
-import { Coordinates } from '../../utils/geoUtils';
+import { calculateOptimalAllocation } from '../../../services/allocation';
+import { Warehouse } from '../../../types/order.types';
+import { Coordinates } from '../../../utils/geoUtils';
 
 // Mock config and geoUtils
-jest.mock('../../config/config', () => ({
+jest.mock('../../../config/config', () => ({
   config: {
     device: {
       weightKg: 0.365,
@@ -14,7 +14,7 @@ jest.mock('../../config/config', () => ({
   },
 }));
 
-jest.mock('../../utils/geoUtils', () => ({
+jest.mock('../../../utils/geoUtils', () => ({
   calculateDistance: jest.fn((from, _) => {
     // Simple mock: return different distances based on warehouse
     const warehouseDistances: Record<string, number> = {

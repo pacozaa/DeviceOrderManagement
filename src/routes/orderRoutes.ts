@@ -4,7 +4,7 @@ import {
   createOrderHandler,
   getOrderHandler,
   getWarehousesHandler,
-} from '../controllers/orderController';
+} from '../controllers';
 import { validate } from '../middleware/validation';
 import { orderRequestSchema } from '../types/schemas';
 

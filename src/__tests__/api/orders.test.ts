@@ -2,7 +2,7 @@ import request from 'supertest';
 import app from '../../index';
 
 // Mock the services
-jest.mock('../../services/orderService');
+jest.mock('../../services/order');
 jest.mock('../../config/database', () => ({
   __esModule: true,
   default: {
@@ -22,7 +22,7 @@ jest.mock('../../config/database', () => ({
   },
 }));
 
-import { verifyOrder, createOrder } from '../../services/orderService';
+import { verifyOrder, createOrder } from '../../services/order';
 
 const mockVerifyOrder = verifyOrder as jest.MockedFunction<typeof verifyOrder>;
 const mockCreateOrder = createOrder as jest.MockedFunction<typeof createOrder>;
