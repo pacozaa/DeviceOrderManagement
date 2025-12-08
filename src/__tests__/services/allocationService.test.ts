@@ -15,7 +15,7 @@ jest.mock('../../config/config', () => ({
 }));
 
 jest.mock('../../utils/geoUtils', () => ({
-  calculateDistance: jest.fn((from, to) => {
+  calculateDistance: jest.fn((from, _) => {
     // Simple mock: return different distances based on warehouse
     const warehouseDistances: Record<string, number> = {
       'wh-1': 100,

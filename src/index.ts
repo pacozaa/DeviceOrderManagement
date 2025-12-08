@@ -17,7 +17,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Request logging
-app.use((req, res, next) => {
+app.use((req, _, next) => {
   logger.info(`${req.method} ${req.path}`);
   next();
 });
@@ -33,13 +33,13 @@ app.use(
 );
 
 // Swagger JSON endpoint
-app.get('/api-docs.json', (req, res) => {
+app.get('/api-docs.json', (_, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
 });
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (_, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
@@ -47,7 +47,7 @@ app.get('/health', (req, res) => {
 app.use('/api/orders', orderRoutes);
 
 // 404 handler
-app.use((req, res) => {
+app.use((_, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
