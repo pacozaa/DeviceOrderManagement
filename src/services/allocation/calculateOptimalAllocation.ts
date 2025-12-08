@@ -1,4 +1,5 @@
-import { Warehouse, OrderAllocation } from '../../types/order.types';
+import { Warehouse } from '../../types/warehouse';
+import { OrderAllocation } from '../../types/allocation';
 import { Coordinates, calculateDistance, calculateShippingCost } from '../../utils/geoUtils';
 import { config } from '../../config/config';
 

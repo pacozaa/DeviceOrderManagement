@@ -1,4 +1,4 @@
-import { OrderAllocation } from '../../types/order.types';
+import { OrderAllocation } from '../../types/allocation';
 
 /**
  * Calculate total shipping cost from allocations
