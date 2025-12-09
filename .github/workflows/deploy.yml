@@ -100,7 +100,11 @@ jobs:
           cp -r prisma deploy/
           cp package*.json deploy/
           cp startup.sh deploy/
+          cp web.config deploy/
           chmod +x deploy/startup.sh
+          # Create a .deployment file to tell Azure not to run npm install
+          echo "[config]" > deploy/.deployment
+          echo "SCM_DO_BUILD_DURING_DEPLOYMENT=false" >> deploy/.deployment
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -159,8 +163,12 @@ jobs:
       - name: Create deployment ZIP
         run: |
           cd deploy
-          zip -r ../deploy.zip .
+          # Ensure all files are at root of ZIP
+          zip -r ../deploy.zip . -x "*.git*"
           cd ..
+          # Verify ZIP contents
+          echo "ZIP contents:"
+          unzip -l deploy.zip | head -20
 
       - name: Deploy to App Service
         uses: azure/webapps-deploy@v2
