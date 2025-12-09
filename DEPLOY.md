@@ -19,7 +19,7 @@ This guide covers deploying the Device Order Management System to Azure App Serv
 
 2. **Resource Group**
    - Will be created automatically: `rg-device-order-mgmt`
-   - Default location: `eastus`
+   - Default location: `southeastasia`
 
 3. **Azure Service Principal**
    
@@ -30,7 +30,7 @@ This guide covers deploying the Device Order Management System to Azure App Serv
    az account show --query id -o tsv
    
    # Create the resource group (if it doesn't exist yet)
-   az group create --name rg-device-order-mgmt --location eastus
+   az group create --name rg-device-order-mgmt --location southeastasia
    
    # Create service principal with Contributor role on the resource group
    az ad sp create-for-rbac \
@@ -143,7 +143,7 @@ For local testing or one-off deployments.
    ```bash
    az group create \
      --name rg-device-order-mgmt \
-     --location eastus
+     --location southeastasia
    ```
 
 4. **Deploy Infrastructure**
@@ -153,7 +153,7 @@ For local testing or one-off deployments.
      --template-file ./infra/main.bicep \
      --parameters \
        environmentName=dev \
-       location=eastus \
+       location=southeastasia \
        applicationName=device-order-mgmt \
        databaseUrl="postgresql://user:pass@host:5432/dbname?schema=public"
    ```
@@ -208,7 +208,7 @@ Located in `infra/main.bicep` and `infra/main.bicepparam`:
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `environmentName` | string | `dev` | Environment name (dev/staging/prod) |
-| `location` | string | `eastus` | Azure region |
+| `location` | string | `southeastasia` | Azure region |
 | `applicationName` | string | `device-order-mgmt` | Application name prefix |
 | `databaseUrl` | secure string | Required | PostgreSQL connection string |
 | `deviceName` | string | `SCOS Station P1 Pro` | Product name |

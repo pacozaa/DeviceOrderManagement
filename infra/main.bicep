@@ -31,8 +31,8 @@ param nodeVersion string = '20-lts'
 
 var appServicePlanName = '${applicationName}-plan-${environmentName}'
 var appServiceName = '${applicationName}-app-${environmentName}'
-var appServiceSku = 'F1'
-var appServiceSkuTier = 'Free'
+var appServiceSku = 'B1'
+var appServiceSkuTier = 'Basic'
 
 // App Service Plan (Linux)
 resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
