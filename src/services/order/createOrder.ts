@@ -1,5 +1,5 @@
 import { Coordinates } from '../../utils/geoUtils';
-import { CreateOrderResult } from '../../types/order';
+import { CreateOrderResult } from '../../types';
 import { updateWarehouseStock } from '../warehouse';
 import { verifyOrder } from './verifyOrder';
 import prisma from '../../config/database';

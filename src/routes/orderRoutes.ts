@@ -6,7 +6,7 @@ import {
   getWarehousesHandler,
 } from '../controllers';
 import { validate } from '../middleware/validation';
-import { orderRequestSchema } from '../types/schemas';
+import { orderRequestSchema } from '../types';
 
 const router = Router();
 

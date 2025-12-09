@@ -1,5 +1,5 @@
 import { Coordinates } from '../../utils/geoUtils';
-import { OrderCalculation } from '../../types/order';
+import { OrderCalculation } from '../../types';
 import { getAllWarehouses, hasSufficientStock } from '../warehouse';
 import { calculateOptimalAllocation, calculateTotalShippingCost } from '../allocation';
 import {

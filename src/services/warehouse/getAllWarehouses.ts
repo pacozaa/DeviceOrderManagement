@@ -1,5 +1,5 @@
 import prisma from '../../config/database';
-import { Warehouse } from '../../types/warehouse';
+import { Warehouse } from '../../types';
 
 /**
  * Get all warehouses

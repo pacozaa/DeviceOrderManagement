@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { createOrder } from '../services/order';
-import { OrderRequest } from '../types/schemas';
+import { OrderRequest } from '../types';
 
 /**
  * POST /api/orders

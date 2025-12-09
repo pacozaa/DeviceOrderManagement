@@ -1,5 +1,5 @@
 import { calculateOptimalAllocation } from '../../../services/allocation';
-import { Warehouse } from '../../../types/warehouse';
+import { Warehouse } from '../../../types';
 import { Coordinates } from '../../../utils/geoUtils';
 
 // Mock config and geoUtils
