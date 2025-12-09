@@ -67,7 +67,7 @@ resource appService 'Microsoft.Web/sites@2022-09-01' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       http20Enabled: true
-      appCommandLine: 'npm run start:azure'
+      appCommandLine: 'bash startup.sh'
       appSettings: [
         {
           name: 'NODE_ENV'
@@ -103,15 +103,11 @@ resource appService 'Microsoft.Web/sites@2022-09-01' = {
         }
         {
           name: 'WEBSITE_NODE_DEFAULT_VERSION'
-          value: '~18'
+          value: '~20'
         }
         {
           name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
-          value: 'true'
-        }
-        {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
+          value: 'false'
         }
       ]
       healthCheckPath: '/health'
