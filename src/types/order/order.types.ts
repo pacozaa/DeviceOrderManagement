@@ -1,18 +1,4 @@
-export interface Warehouse {
-  id: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  stock: number;
-}
-
-export interface OrderAllocation {
-  warehouseId: string;
-  warehouseName: string;
-  quantity: number;
-  distance: number;
-  shippingCost: number;
-}
+import { OrderAllocation } from '../allocation';
 
 export interface OrderCalculation {
   quantity: number;
