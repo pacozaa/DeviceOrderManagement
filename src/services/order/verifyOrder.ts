@@ -17,8 +17,11 @@ export async function verifyOrder(
   quantity: number,
   shippingAddress: Coordinates
 ): Promise<OrderCalculation> {
+  // Get all warehouses
+  const warehouses = await getAllWarehouses();
+
   // Check sufficient stock
-  const hasStock = await hasSufficientStock(quantity);
+  const hasStock = await hasSufficientStock(quantity, warehouses);
   if (!hasStock) {
     return {
       quantity,
@@ -32,9 +35,6 @@ export async function verifyOrder(
       invalidReason: 'Insufficient stock available',
     };
   }
-
-  // Get all warehouses
-  const warehouses = await getAllWarehouses();
 
   // Calculate optimal allocation
   let allocations;
