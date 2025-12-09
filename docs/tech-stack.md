@@ -8,7 +8,7 @@
 ## Recommended Stack
 
 ### Runtime & Framework
-- **Node.js** (v18+) with Express
+- **Node.js** (v20+) with Express
 - Avoid opinionated frameworks like NestJS per requirements
 
 ### Database & ORM

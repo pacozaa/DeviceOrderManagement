@@ -27,7 +27,7 @@ param shippingRatePerKgPerKm string = '0.01'
 param maxShippingPercentage string = '0.15'
 
 @description('Node.js version for the runtime')
-param nodeVersion string = '18-lts'
+param nodeVersion string = '20-lts'
 
 var appServicePlanName = '${applicationName}-plan-${environmentName}'
 var appServiceName = '${applicationName}-app-${environmentName}'

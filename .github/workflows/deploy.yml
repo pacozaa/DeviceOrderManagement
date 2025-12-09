@@ -17,9 +17,9 @@ on:
           - prod
 
 env:
-  NODE_VERSION: '18.x'
+  NODE_VERSION: '20.x'
   AZURE_RESOURCE_GROUP: 'rg-device-order-mgmt'
-  AZURE_LOCATION: 'eastus'
+  AZURE_LOCATION: 'southeastasia'
 
 jobs:
   test:

@@ -15,7 +15,7 @@ A production-ready backend system for managing SCOS device orders with intellige
 
 ## Tech Stack
 
-- **Runtime**: Node.js 18+
+- **Runtime**: Node.js 20+
 - **Language**: TypeScript
 - **Framework**: Express.js
 - **Database**: PostgreSQL with Prisma ORM
@@ -26,7 +26,7 @@ A production-ready backend system for managing SCOS device orders with intellige
 
 ## Prerequisites
 
-- Node.js 18+ or Docker
+- Node.js 20+ or Docker
 - PostgreSQL 15+ (if running without Docker)
 - npm or yarn
 

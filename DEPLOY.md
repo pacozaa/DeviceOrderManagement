@@ -4,7 +4,7 @@ This guide covers deploying the Device Order Management System to Azure App Serv
 
 ## Architecture Overview
 
-- **Compute**: Azure App Service (Linux, B1 Basic tier) with Node.js 18 runtime
+- **Compute**: Azure App Service (Linux, B1 Basic tier) with Node.js 20 runtime
 - **Database**: External PostgreSQL database (managed by you)
 - **Infrastructure**: Bicep templates for reproducible deployments
 - **CI/CD**: GitHub Actions for automated testing and deployment
@@ -216,13 +216,13 @@ Located in `infra/main.bicep` and `infra/main.bicepparam`:
 | `deviceWeightKg` | string | `0.365` | Device weight |
 | `shippingRatePerKgPerKm` | string | `0.01` | Shipping rate |
 | `maxShippingPercentage` | string | `0.15` | Max shipping % |
-| `nodeVersion` | string | `18-lts` | Node.js version |
+| `nodeVersion` | string | `20-lts` | Node.js version |
 
 ### App Service Configuration
 
 - **SKU**: B1 (Basic) - ~$13/month
 - **Operating System**: Linux
-- **Runtime**: Node.js 18 LTS
+- **Runtime**: Node.js 20 LTS
 - **Always On**: Enabled
 - **HTTPS Only**: Enabled
 - **TLS Version**: 1.2

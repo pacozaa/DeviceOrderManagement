@@ -3,7 +3,7 @@ applyTo: '**'
 ---
 ## Tech Stack
 
-- **Runtime**: Node.js 18+
+- **Runtime**: Node.js 20+
 - **Language**: TypeScript
 - **Framework**: Express.js
 - **Database**: PostgreSQL with Prisma ORM
