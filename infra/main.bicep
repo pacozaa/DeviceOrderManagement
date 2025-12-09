@@ -31,8 +31,8 @@ param nodeVersion string = '18-lts'
 
 var appServicePlanName = '${applicationName}-plan-${environmentName}'
 var appServiceName = '${applicationName}-app-${environmentName}'
-var appServiceSku = 'B1'
-var appServiceSkuTier = 'Basic'
+var appServiceSku = 'F1'
+var appServiceSkuTier = 'Free'
 
 // App Service Plan (Linux)
 resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
@@ -63,7 +63,7 @@ resource appService 'Microsoft.Web/sites@2022-09-01' = {
     httpsOnly: true
     siteConfig: {
       linuxFxVersion: 'NODE|${nodeVersion}'
-      alwaysOn: true
+      alwaysOn: false
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       http20Enabled: true
