@@ -22,8 +22,17 @@ This guide covers deploying the Device Order Management System to Azure App Serv
    - Default location: `eastus`
 
 3. **Azure Service Principal**
+   
+   Create a service principal for GitHub Actions authentication:
+   
    ```bash
-   # Create service principal with Contributor role
+   # First, get your subscription ID
+   az account show --query id -o tsv
+   
+   # Create the resource group (if it doesn't exist yet)
+   az group create --name rg-device-order-mgmt --location eastus
+   
+   # Create service principal with Contributor role on the resource group
    az ad sp create-for-rbac \
      --name "device-order-mgmt-github" \
      --role contributor \
@@ -31,7 +40,19 @@ This guide covers deploying the Device Order Management System to Azure App Serv
      --sdk-auth
    ```
    
-   Save the JSON output - you'll need it for GitHub secrets.
+   **Important**: Replace `{subscription-id}` with your actual Azure subscription ID from the first command.
+   
+   The command will output JSON in this format:
+   ```json
+   {
+     "clientId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+     "clientSecret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "subscriptionId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+     "tenantId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+   }
+   ```
+   
+   **Copy the entire JSON output** - you'll use it as the `AZURE_CREDENTIALS` secret in GitHub.
 
 ### Database Requirements
 
