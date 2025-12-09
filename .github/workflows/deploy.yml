@@ -99,9 +99,6 @@ jobs:
           cp -r node_modules deploy/
           cp -r prisma deploy/
           cp package*.json deploy/
-          cp startup.sh deploy/
-          cp web.config deploy/
-          chmod +x deploy/startup.sh
           # Create a .deployment file to tell Azure not to run npm install
           echo "[config]" > deploy/.deployment
           echo "SCM_DO_BUILD_DURING_DEPLOYMENT=false" >> deploy/.deployment

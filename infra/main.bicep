@@ -67,7 +67,7 @@ resource appService 'Microsoft.Web/sites@2022-09-01' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       http20Enabled: true
-      appCommandLine: 'bash startup.sh'
+      appCommandLine: 'npx prisma generate && npx prisma migrate deploy && node dist/index.js'
       appSettings: [
         {
           name: 'NODE_ENV'
