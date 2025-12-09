@@ -132,12 +132,6 @@ jobs:
             --name ${{ env.AZURE_RESOURCE_GROUP }} \
             --location ${{ env.AZURE_LOCATION }}
 
-      - name: Register Azure Resource Providers
-        run: |
-          echo "Registering required Azure resource providers..."
-          az provider register --namespace Microsoft.Web --wait
-          echo "Resource providers registered successfully"
-
       - name: Deploy Infrastructure
         id: deploy-infra
         uses: azure/arm-deploy@v1
