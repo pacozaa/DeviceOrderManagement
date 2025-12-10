@@ -25,6 +25,12 @@ if [ ! -d "dist" ]; then
   exit 1
 fi
 
+# Fix Prisma binary permissions
+echo "Fixing Prisma binary permissions..."
+find node_modules/.prisma -type f -name "query-engine-*" -exec chmod +x {} \; 2>/dev/null || true
+find node_modules/@prisma -type f -name "prisma-*" -exec chmod +x {} \; 2>/dev/null || true
+chmod +x node_modules/.bin/prisma 2>/dev/null || true
+
 # Generate Prisma Client
 echo "Generating Prisma Client..."
 npx prisma generate
