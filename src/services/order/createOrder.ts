@@ -7,9 +7,6 @@ import { logger } from '../../utils/logger';
 import { calculateOptimalAllocation } from '../allocation';
 import { calculatePricing, isShippingCostValid } from '../pricing';
 
-/**
- * Generate unique order number
- */
 function generateOrderNumber(): string {
   const timestamp = Date.now();
   const random = Math.floor(Math.random() * 1000)
@@ -18,9 +15,6 @@ function generateOrderNumber(): string {
   return `ORD-${timestamp}-${random}`;
 }
 
-/**
- * Create and submit an order
- */
 export async function createOrder(
   quantity: number,
   shippingAddress: Coordinates
