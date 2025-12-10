@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Container Startup Script
 # This script runs database migrations before starting the application
