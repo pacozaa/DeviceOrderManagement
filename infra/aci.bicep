@@ -38,23 +38,6 @@ param acrName string = 'deviceordermgmtacr${environmentName}'
 var containerGroupName = '${applicationName}-aci-${environmentName}'
 var containerName = '${applicationName}-container'
 var dnsLabel = '${applicationName}-${environmentName}-${uniqueString(resourceGroup().id)}'
-var logAnalyticsWorkspaceName = '${applicationName}-logs-${environmentName}'
-
-// Log Analytics Workspace for Container Logs
-resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-  name: logAnalyticsWorkspaceName
-  location: location
-  properties: {
-    sku: {
-      name: 'PerGB2018'
-    }
-    retentionInDays: 30
-  }
-  tags: {
-    environment: environmentName
-    application: applicationName
-  }
-}
 
 // Reference existing ACR
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
@@ -139,12 +122,6 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
         password: containerRegistry.listCredentials().passwords[0].value
       }
     ]
-    diagnostics: {
-      logAnalytics: {
-        workspaceId: logAnalyticsWorkspace.properties.customerId
-        workspaceKey: logAnalyticsWorkspace.listKeys().primarySharedKey
-      }
-    }
   }
   tags: {
     environment: environmentName
@@ -156,5 +133,3 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
 output containerGroupName string = containerGroup.name
 output containerFqdn string = containerGroup.properties.ipAddress.fqdn
 output containerUrl string = 'http://${containerGroup.properties.ipAddress.fqdn}:8080'
-output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.id
-output logAnalyticsWorkspaceName string = logAnalyticsWorkspace.name
