@@ -8,9 +8,7 @@ param location string = resourceGroup().location
 @description('The name of the application')
 param applicationName string = 'device-order-mgmt'
 
-@description('Generated ACR name')
-@minLength(5)
-@maxLength(50)
+#disable-next-line BCP334
 var acrName = '${replace(applicationName, '-', '')}acr${environmentName}'
 
 // Azure Container Registry
