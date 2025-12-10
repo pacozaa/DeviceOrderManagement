@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Prisma CLI
+        run: npm install prisma tsx
+
       - name: Generate Prisma Client
         run: npx prisma generate
 
@@ -49,21 +52,11 @@ jobs:
         run: |
           mkdir -p deploy
           cp -r dist deploy/
-          cp -r node_modules deploy/
           cp -r prisma deploy/
           cp package*.json deploy/
           cp startup.sh deploy/
+          cp Dockerfile deploy/
           chmod +x deploy/startup.sh
-          
-          # Fix permissions for Prisma binaries before packaging
-          echo "Setting execute permissions on Prisma binaries..."
-          find deploy/node_modules/.prisma -type f \( -name "*engine*" -o -name "prisma" \) -exec chmod +x {} \; 2>/dev/null || true
-          find deploy/node_modules/@prisma -type f \( -name "*engine*" -o -name "prisma" \) -exec chmod +x {} \; 2>/dev/null || true
-          find deploy/node_modules/.bin -type f -exec chmod +x {} \; 2>/dev/null || true
-          
-          # Create a .deployment file to tell Azure not to run npm install
-          echo "[config]" > deploy/.deployment
-          echo "SCM_DO_BUILD_DURING_DEPLOYMENT=false" >> deploy/.deployment
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -121,37 +114,7 @@ jobs:
         run: |
           cd deploy
           
-          # Create Dockerfile for deployment
-          cat > Dockerfile << 'EOF'
-          FROM node:20-alpine
-          
-          WORKDIR /app
-          
-          # Install OpenSSL required by Prisma
-          RUN apk add --no-cache openssl libc6-compat
-          
-          # Copy application files
-          COPY package*.json ./
-          COPY dist ./dist
-          COPY prisma ./prisma
-          COPY node_modules ./node_modules
-          COPY startup.sh ./
-          
-          # Make startup script executable
-          RUN chmod +x startup.sh
-          
-          # Expose port
-          EXPOSE 8080
-          
-          # Health check
-          HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-            CMD node -e "require('http').get('http://localhost:8080/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); })"
-          
-          # Start application
-          CMD ["sh", "startup.sh"]
-          EOF
-          
-          # Build and push image
+          # Build and push image using the existing Dockerfile
           IMAGE_TAG="${{ github.sha }}"
           docker build -t ${{ steps.deploy-acr.outputs.acrLoginServer }}/device-order-mgmt:${IMAGE_TAG} .
           docker build -t ${{ steps.deploy-acr.outputs.acrLoginServer }}/device-order-mgmt:latest .

@@ -29,6 +29,14 @@ if [ ! -d "dist" ]; then
   exit 1
 fi
 
+# Verify node_modules exists
+if [ ! -d "node_modules" ]; then
+  echo "ERROR: node_modules directory not found!"
+  echo "This should have been created during Docker build."
+  ls -la
+  exit 1
+fi
+
 # Verify Prisma CLI is available
 echo "Verifying Prisma CLI..."
 if ! command -v npx >/dev/null 2>&1; then

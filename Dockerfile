@@ -1,27 +1,3 @@
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-# Install OpenSSL and other dependencies required by Prisma
-RUN apk add --no-cache openssl libc6-compat
-
-# Copy package files
-COPY package*.json ./
-COPY prisma ./prisma/
-
-# Install dependencies
-RUN npm ci
-
-# Copy source code
-COPY . .
-
-# Generate Prisma Client
-RUN npx prisma generate
-
-# Build TypeScript
-RUN npm run build
-
-# Production stage
 FROM node:20-alpine
 
 WORKDIR /app
@@ -29,21 +5,26 @@ WORKDIR /app
 # Install OpenSSL and other dependencies required by Prisma
 RUN apk add --no-cache openssl libc6-compat
 
-# Copy package files
-COPY package*.json ./
-COPY prisma ./prisma/
+# Copy all files first
+COPY . .
 
-# Install production dependencies only
-RUN npm ci --only=production
+# Install production dependencies and generate Prisma Client
+RUN npm ci --only=production && \
+    npm install prisma tsx && \
+    npx prisma generate
 
-# Install prisma CLI and tsx for runtime operations
-RUN npm install prisma tsx
-
-# Copy Prisma generated files
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-
-# Copy built application
-COPY --from=builder /app/dist ./dist
+# Build from source if dist doesn't exist
+RUN if [ ! -d "dist" ]; then \
+      echo "Building from source..." && \
+      npm ci && \
+      npm run build && \
+      rm -rf node_modules && \
+      npm ci --only=production && \
+      npm install prisma tsx; \
+      npx prisma generate; \
+    else \
+      echo "Using pre-built dist directory..."; \
+    fi
 
 # Copy startup script
 COPY startup.sh ./
