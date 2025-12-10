@@ -29,7 +29,9 @@ param maxShippingPercentage string = '0.15'
 @description('Container image tag')
 param imageTag string = 'latest'
 
-var acrName = 'deviceordermgmtacrdev'
+@description('The name of the Azure Container Registry')
+param acrName string = 'deviceordermgmtacr${environmentName}'
+
 var containerGroupName = '${applicationName}-aci-${environmentName}'
 var containerName = '${applicationName}-container'
 var dnsLabel = '${applicationName}-${environmentName}-${uniqueString(resourceGroup().id)}'

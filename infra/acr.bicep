@@ -8,7 +8,8 @@ param location string = resourceGroup().location
 @description('The name of the application')
 param applicationName string = 'device-order-mgmt'
 
-var acrName = 'deviceordermgmtacrdev'
+@description('The name of the Azure Container Registry')
+param acrName string = 'deviceordermgmtacr${environmentName}'
 
 // Azure Container Registry
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
