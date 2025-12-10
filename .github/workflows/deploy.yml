@@ -101,6 +101,13 @@ jobs:
           cp package*.json deploy/
           cp startup.sh deploy/
           chmod +x deploy/startup.sh
+          
+          # Fix permissions for Prisma binaries before packaging
+          echo "Setting execute permissions on Prisma binaries..."
+          find deploy/node_modules/.prisma -type f \( -name "*engine*" -o -name "prisma" \) -exec chmod +x {} \; 2>/dev/null || true
+          find deploy/node_modules/@prisma -type f \( -name "*engine*" -o -name "prisma" \) -exec chmod +x {} \; 2>/dev/null || true
+          find deploy/node_modules/.bin -type f -exec chmod +x {} \; 2>/dev/null || true
+          
           # Create a .deployment file to tell Azure not to run npm install
           echo "[config]" > deploy/.deployment
           echo "SCM_DO_BUILD_DURING_DEPLOYMENT=false" >> deploy/.deployment
