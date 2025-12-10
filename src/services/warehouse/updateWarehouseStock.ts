@@ -1,9 +1,6 @@
 import prisma from '../../config/database';
 import { Prisma } from '@prisma/client';
 
-/**
- * Update warehouse stock (within a transaction)
- */
 export async function updateWarehouseStock(
   warehouseId: string,
   quantity: number,

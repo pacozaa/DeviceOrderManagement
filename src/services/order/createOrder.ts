@@ -1,10 +1,17 @@
 import { Coordinates } from '../../utils/geoUtils';
 import { CreateOrderResult } from '../../types';
-import { updateWarehouseStock } from '../warehouse';
-import { verifyOrder } from './verifyOrder';
+import { updateWarehouseStock, getWarehousesForAllocation } from '../warehouse';
 import prisma from '../../config/database';
 import { AppError } from '../../middleware/errorHandler';
 import { logger } from '../../utils/logger';
+import { calculateOptimalAllocation, calculateTotalShippingCost } from '../allocation';
+import {
+  calculateDiscount,
+  calculateSubtotal,
+  calculateDiscountAmount,
+  calculateTotal,
+  isShippingCostValid,
+} from '../pricing';
 
 /**
  * Generate unique order number
@@ -24,15 +31,44 @@ export async function createOrder(
   quantity: number,
   shippingAddress: Coordinates
 ): Promise<CreateOrderResult> {
-  // First verify the order
-  const calculation = await verifyOrder(quantity, shippingAddress);
-
-  if (!calculation.isValid) {
-    throw new AppError(400, calculation.invalidReason || 'Order validation failed');
-  }
-
-  // Create order in a transaction
+  // Create order in a transaction with row-level locking
   const result = await prisma.$transaction(async (tx) => {
+    // Lock warehouses and read current stock (prevents race conditions)
+    const warehouses = await getWarehousesForAllocation(tx);
+
+    // Check sufficient stock
+    const totalStock = warehouses.reduce((sum, w) => sum + w.stock, 0);
+    if (totalStock < quantity) {
+      throw new AppError(400, `Insufficient stock. Available: ${totalStock}, Requested: ${quantity}`);
+    }
+
+    // Calculate optimal allocation
+    let allocations;
+    try {
+      allocations = calculateOptimalAllocation(warehouses, quantity, shippingAddress);
+    } catch (error) {
+      throw new AppError(
+        400,
+        error instanceof Error ? error.message : 'Allocation failed'
+      );
+    }
+
+    // Calculate pricing
+    const subtotal = calculateSubtotal(quantity);
+    const discount = calculateDiscount(quantity);
+    const discountAmount = calculateDiscountAmount(subtotal, discount);
+    const orderAmount = subtotal - discountAmount;
+    const shippingCost = calculateTotalShippingCost(allocations);
+    const total = calculateTotal(subtotal, discountAmount, shippingCost);
+
+    // Validate shipping cost
+    if (!isShippingCostValid(shippingCost, orderAmount)) {
+      throw new AppError(
+        400,
+        `Shipping cost ($${shippingCost.toFixed(2)}) exceeds 15% of order amount ($${(orderAmount * 0.15).toFixed(2)})`
+      );
+    }
+
     // Generate order number
     const orderNumber = generateOrderNumber();
 
@@ -40,20 +76,20 @@ export async function createOrder(
     const order = await tx.order.create({
       data: {
         orderNumber,
-        quantity: calculation.quantity,
+        quantity,
         shippingLatitude: shippingAddress.latitude,
         shippingLongitude: shippingAddress.longitude,
-        subtotal: calculation.subtotal,
-        discount: calculation.discount,
-        discountAmount: calculation.discountAmount,
-        shippingCost: calculation.shippingCost,
-        total: calculation.total,
+        subtotal,
+        discount,
+        discountAmount,
+        shippingCost,
+        total,
         status: 'completed',
       },
     });
 
     // Create allocations and update warehouse stock
-    for (const allocation of calculation.allocations) {
+    for (const allocation of allocations) {
       await tx.orderAllocation.create({
         data: {
           orderId: order.id,
@@ -70,13 +106,22 @@ export async function createOrder(
     logger.info(`Order created: ${orderNumber}`, {
       orderId: order.id,
       quantity,
-      total: calculation.total,
+      total,
     });
 
     return {
       orderId: order.id,
       orderNumber: order.orderNumber,
-      calculation,
+      calculation: {
+        quantity,
+        subtotal,
+        discount,
+        discountAmount,
+        shippingCost,
+        total,
+        allocations,
+        isValid: true,
+      },
     };
   });
 

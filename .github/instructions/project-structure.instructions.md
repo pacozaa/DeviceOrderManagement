@@ -21,7 +21,7 @@ ordermanagement/
 ├── logs/                     # Application logs
 ├── prisma/                   # Database schema and migrations
 │   ├── schema.prisma
-│   ├── seed.ts
+│   ├── seed.js
 │   └── migrations/
 ├── src/                      # Source code
 │   ├── index.ts             # Application entry point

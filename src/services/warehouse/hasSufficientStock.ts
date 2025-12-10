@@ -1,9 +1,6 @@
 import { getAllWarehouses } from './getAllWarehouses';
 import { Warehouse } from '../../types';
 
-/**
- * Check if warehouses have sufficient total stock
- */
 export async function hasSufficientStock(
   quantity: number,
   warehouses?: Warehouse[]
