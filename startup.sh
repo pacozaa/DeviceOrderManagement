@@ -29,29 +29,45 @@ if [ ! -d "dist" ]; then
   exit 1
 fi
 
-# # Fix Prisma binary permissions
-# echo "Fixing Prisma binary permissions..."
-# find node_modules/.prisma -type f -name "query-engine-*" -exec chmod +x {} \; 2>/dev/null || true
-# find node_modules/@prisma -type f -name "prisma-*" -exec chmod +x {} \; 2>/dev/null || true
-# chmod +x node_modules/.bin/prisma 2>/dev/null || true
+# Verify Prisma CLI is available
+echo "Verifying Prisma CLI..."
+if ! command -v npx >/dev/null 2>&1; then
+  echo "ERROR: npx command not found!"
+  exit 1
+fi
 
-# # Generate Prisma Client
-# echo "Generating Prisma Client..."
-# npx prisma generate
+if ! npx prisma --version >/dev/null 2>&1; then
+  echo "ERROR: Prisma CLI not found in node_modules!"
+  echo "Contents of node_modules/.bin:"
+  ls -la node_modules/.bin/ 2>/dev/null || echo "node_modules/.bin not found"
+  exit 1
+fi
 
-# # Run database migrations
-# echo "Running database migrations..."
-# npx prisma migrate deploy
-# echo "Migrations completed successfully"
+echo "Prisma CLI found: $(npx prisma --version | head -n 1)"
 
-# # Seed the database
-# echo "Seeding database..."
-# npm run db:seed || {
-#   echo "Database seeding failed, but continuing with application startup..."
-#   echo "You may need to run seeding manually"
-# }
+# Fix Prisma binary permissions
+echo "Fixing Prisma binary permissions..."
+find node_modules/.prisma -type f -name "query-engine-*" -exec chmod +x {} \; 2>/dev/null || true
+find node_modules/@prisma -type f -name "prisma-*" -exec chmod +x {} \; 2>/dev/null || true
+chmod +x node_modules/.bin/prisma 2>/dev/null || true
 
-# echo "Database operations completed"
+# Generate Prisma Client
+echo "Generating Prisma Client..."
+npx prisma generate
+
+# Run database migrations
+echo "Running database migrations..."
+npx prisma migrate deploy
+echo "Migrations completed successfully"
+
+# Seed the database
+echo "Seeding database..."
+npm run db:seed || {
+  echo "Database seeding failed, but continuing with application startup..."
+  echo "You may need to run seeding manually"
+}
+
+echo "Database operations completed"
 
 # Start the application
 echo "Starting application on port ${PORT:-8080}..."

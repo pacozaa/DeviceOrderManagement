@@ -9,23 +9,11 @@ const options: swaggerJsdoc.Options = {
       version: '1.0.0',
       description:
         'API for managing SCOS device orders with intelligent warehouse allocation and pricing',
-      contact: {
-        name: 'API Support',
-        email: 'support@screencloud.com',
-      },
-      license: {
-        name: 'MIT',
-        url: 'https://opensource.org/licenses/MIT',
-      },
     },
     servers: [
       {
         url: `http://localhost:${config.port}`,
         description: 'Development server',
-      },
-      {
-        url: 'https://api.screencloud.com',
-        description: 'Production server',
       },
     ],
     components: {

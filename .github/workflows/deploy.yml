@@ -127,6 +127,9 @@ jobs:
           
           WORKDIR /app
           
+          # Install OpenSSL required by Prisma
+          RUN apk add --no-cache openssl libc6-compat
+          
           # Copy application files
           COPY package*.json ./
           COPY dist ./dist

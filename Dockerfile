@@ -36,8 +36,8 @@ COPY prisma ./prisma/
 # Install production dependencies only
 RUN npm ci --only=production
 
-# Install tsx for running seed script
-RUN npm install tsx
+# Install prisma CLI and tsx for runtime operations
+RUN npm install prisma tsx
 
 # Copy Prisma generated files
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
