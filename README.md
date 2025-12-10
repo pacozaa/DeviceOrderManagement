@@ -42,7 +42,7 @@ A production-ready backend system for managing SCOS device orders with intellige
 
 2. **Start the application**
    ```bash
-   docker compose up -d
+   docker compose up --build -d
    ```
 
 3. **Seed the database**
