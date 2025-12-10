@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { createOrder } from '../services/order';
-import { OrderRequest } from '../types';
+import { orderRequestSchema, createOrderResponseSchema, CreateOrderResponse } from '../types';
 
 /**
  * POST /api/orders
@@ -12,11 +12,14 @@ export const createOrderHandler = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { quantity, shippingAddress } = req.body as OrderRequest;
+    // Validate request body with Zod
+    const { body } = orderRequestSchema.parse({ body: req.body });
+    const { quantity, shippingAddress } = body;
 
     const result = await createOrder(quantity, shippingAddress);
 
-    res.status(201).json({
+    // Build response with explicit typing
+    const response: CreateOrderResponse = {
       success: true,
       data: {
         orderId: result.orderId,
@@ -29,7 +32,12 @@ export const createOrderHandler = async (
         total: result.calculation.total,
         allocations: result.calculation.allocations,
       },
-    });
+    };
+
+    // Validate response with Zod before sending
+    const validatedResponse = createOrderResponseSchema.parse(response);
+
+    res.status(201).json(validatedResponse);
   } catch (error) {
     next(error);
   }

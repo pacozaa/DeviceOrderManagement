@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { getAllWarehouses } from '../services/warehouse';
+import { getWarehousesResponseSchema, GetWarehousesResponse } from '../types';
 
 /**
  * GET /api/orders/warehouses
@@ -13,10 +14,16 @@ export const getWarehousesHandler = async (
   try {
     const warehouses = await getAllWarehouses();
 
-    res.json({
+    // Build response with explicit typing
+    const response: GetWarehousesResponse = {
       success: true,
       data: warehouses,
-    });
+    };
+
+    // Validate response with Zod before sending
+    const validatedResponse = getWarehousesResponseSchema.parse(response);
+
+    res.json(validatedResponse);
   } catch (error) {
     next(error);
   }

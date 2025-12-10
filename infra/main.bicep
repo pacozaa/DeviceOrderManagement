@@ -29,7 +29,7 @@ param maxShippingPercentage string = '0.15'
 @description('Container image tag')
 param imageTag string = 'latest'
 
-var acrName = '${replace(applicationName, '-', '')}acr${environmentName}'
+var acrName = 'deviceordermgmtacrdev'
 var containerGroupName = '${applicationName}-aci-${environmentName}'
 var containerName = '${applicationName}-container'
 var dnsLabel = '${applicationName}-${environmentName}-${uniqueString(resourceGroup().id)}'

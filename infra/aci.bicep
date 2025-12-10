@@ -35,7 +35,7 @@ param acrLoginServer string
 var containerGroupName = '${applicationName}-aci-${environmentName}'
 var containerName = '${applicationName}-container'
 var dnsLabel = '${applicationName}-${environmentName}-${uniqueString(resourceGroup().id)}'
-var acrName = '${replace(applicationName, '-', '')}acr${environmentName}'
+var acrName = 'deviceordermgmtacrdev'
 
 // Reference existing ACR
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
