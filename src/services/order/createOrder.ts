@@ -39,7 +39,10 @@ export async function createOrder(
     // Check sufficient stock
     const totalStock = warehouses.reduce((sum, w) => sum + w.stock, 0);
     if (totalStock < quantity) {
-      throw new AppError(400, `Insufficient stock. Available: ${totalStock}, Requested: ${quantity}`);
+      throw new AppError(
+        400,
+        `Insufficient stock. Available: ${totalStock}, Requested: ${quantity}`
+      );
     }
 
     // Calculate optimal allocation
@@ -47,10 +50,7 @@ export async function createOrder(
     try {
       allocations = calculateOptimalAllocation(warehouses, quantity, shippingAddress);
     } catch (error) {
-      throw new AppError(
-        400,
-        error instanceof Error ? error.message : 'Allocation failed'
-      );
+      throw new AppError(400, error instanceof Error ? error.message : 'Allocation failed');
     }
 
     // Calculate pricing

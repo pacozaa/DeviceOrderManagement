@@ -31,6 +31,18 @@ find node_modules/.prisma -type f -name "query-engine-*" -exec chmod +x {} \; 2>
 find node_modules/@prisma -type f -name "prisma-*" -exec chmod +x {} \; 2>/dev/null || true
 chmod +x node_modules/.bin/prisma 2>/dev/null || true
 
+# Check Fix
+echo "Verifying Prisma binary permissions..."
+if [ -f "node_modules/.bin/prisma" ]; then
+  ls -la node_modules/.bin/prisma
+  stat -c "Permissions: %a %A" node_modules/.bin/prisma 2>/dev/null || stat -f "Permissions: %Lp %Sp" node_modules/.bin/prisma
+else
+  echo "Warning: Prisma binary not found in .bin"
+fi
+
+echo "Checking query engine binaries..."
+find node_modules/.prisma -type f -name "query-engine-*" -exec sh -c 'ls -la "$1"; stat -c "Permissions: %a %A" "$1" 2>/dev/null || stat -f "Permissions: %Lp %Sp" "$1"' _ {} \; 2>/dev/null || echo "Warning: Query engine not found"
+
 # Generate Prisma Client
 echo "Generating Prisma Client..."
 npx prisma generate
