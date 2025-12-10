@@ -1,10 +1,11 @@
 # Azure Deployment Guide
 
-This guide covers deploying the Device Order Management System to Azure App Service using Bicep infrastructure as code and GitHub Actions for CI/CD.
+This guide covers deploying the Device Order Management System to Azure Container Instances (ACI) using Bicep infrastructure as code and GitHub Actions for CI/CD.
 
 ## Architecture Overview
 
-- **Compute**: Azure App Service (Linux, B1 Basic tier) with Node.js 20 runtime
+- **Compute**: Azure Container Instances (ACI) with Docker containers
+- **Container Registry**: Azure Container Registry (ACR) for Docker images
 - **Database**: External PostgreSQL database (managed by you)
 - **Infrastructure**: Bicep templates for reproducible deployments
 - **CI/CD**: GitHub Actions for automated testing and deployment
@@ -146,51 +147,43 @@ For local testing or one-off deployments.
      --location southeastasia
    ```
 
-4. **Deploy Infrastructure**
+4. **Deploy Azure Container Registry**
    ```bash
    az deployment group create \
      --resource-group rg-device-order-mgmt \
-     --template-file ./infra/main.bicep \
+     --template-file ./infra/acr.bicep \
+     --parameters \
+       environmentName=dev \
+       location=southeastasia \
+       applicationName=device-order-mgmt
+   ```
+
+5. **Build and Push Docker Image**
+   ```bash
+   # Get ACR name from deployment output
+   ACR_NAME=$(az acr list --resource-group rg-device-order-mgmt --query "[0].name" -o tsv)
+   ACR_LOGIN_SERVER=$(az acr list --resource-group rg-device-order-mgmt --query "[0].loginServer" -o tsv)
+   
+   # Login to ACR
+   az acr login --name $ACR_NAME
+   
+   # Build and push Docker image
+   docker build -t $ACR_LOGIN_SERVER/device-order-mgmt:latest .
+   docker push $ACR_LOGIN_SERVER/device-order-mgmt:latest
+   ```
+
+6. **Deploy Container Instance**
+   ```bash
+   az deployment group create \
+     --resource-group rg-device-order-mgmt \
+     --template-file ./infra/aci.bicep \
      --parameters \
        environmentName=dev \
        location=southeastasia \
        applicationName=device-order-mgmt \
-       databaseUrl="postgresql://user:pass@host:5432/dbname?schema=public"
-   ```
-
-5. **Build and Deploy Application**
-   ```bash
-   # Install dependencies and build
-   npm ci
-   npx prisma generate
-   npm run build
-   
-   # Create deployment package
-   mkdir -p deploy
-   cp -r dist deploy/
-   cp -r node_modules deploy/
-   cp -r prisma deploy/
-   cp package*.json deploy/
-   cp startup.sh deploy/
-   
-   # Create ZIP
-   cd deploy && zip -r ../deploy.zip . && cd ..
-   
-   # Deploy to App Service
-   az webapp deployment source config-zip \
-     --resource-group rg-device-order-mgmt \
-     --name device-order-mgmt-app-dev \
-     --src deploy.zip
-   ```
-
-6. **Run Database Migrations**
-   ```bash
-   # SSH into App Service (optional - migrations run automatically via startup.sh)
-   az webapp ssh --resource-group rg-device-order-mgmt --name device-order-mgmt-app-dev
-   
-   # Manually run migrations if needed
-   cd /home/site/wwwroot
-   npx prisma migrate deploy
+       databaseUrl="postgresql://user:pass@host:5432/dbname?schema=public" \
+       acrLoginServer=$ACR_LOGIN_SERVER \
+       imageTag=latest
    ```
 
 ## Infrastructure Details
@@ -198,12 +191,22 @@ For local testing or one-off deployments.
 ### Resource Naming Convention
 
 - **Resource Group**: `rg-device-order-mgmt`
-- **App Service Plan**: `device-order-mgmt-plan-{env}`
-- **App Service**: `device-order-mgmt-app-{env}`
+- **Container Registry**: `deviceordermgmtacr{env}`
+- **Container Group**: `device-order-mgmt-aci-{env}`
 
-### Bicep Parameters
+### Bicep Templates
 
-Located in `infra/main.bicep` and `infra/main.bicepparam`:
+The infrastructure is split into two templates:
+
+#### `infra/acr.bicep` - Azure Container Registry
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `environmentName` | string | `dev` | Environment name (dev/staging/prod) |
+| `location` | string | `southeastasia` | Azure region |
+| `applicationName` | string | `device-order-mgmt` | Application name prefix |
+
+#### `infra/aci.bicep` - Azure Container Instance
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -216,16 +219,16 @@ Located in `infra/main.bicep` and `infra/main.bicepparam`:
 | `deviceWeightKg` | string | `0.365` | Device weight |
 | `shippingRatePerKgPerKm` | string | `0.01` | Shipping rate |
 | `maxShippingPercentage` | string | `0.15` | Max shipping % |
-| `nodeVersion` | string | `20-lts` | Node.js version |
+| `imageTag` | string | `latest` | Docker image tag |
+| `acrLoginServer` | string | Required | ACR login server URL |
 
-### App Service Configuration
+### Container Configuration
 
-- **SKU**: B1 (Basic) - ~$13/month
+- **CPU**: 1 core
+- **Memory**: 2 GB
 - **Operating System**: Linux
-- **Runtime**: Node.js 20 LTS
-- **Always On**: Enabled
-- **HTTPS Only**: Enabled
-- **TLS Version**: 1.2
+- **Runtime**: Node.js 20 (via Docker)
+- **Port**: 8080
 - **Health Check**: `/health` endpoint
 
 ## Post-Deployment
@@ -234,16 +237,17 @@ Located in `infra/main.bicep` and `infra/main.bicepparam`:
 
 1. **Check Application URL**
    ```bash
-   # Get URL from deployment output
-   az webapp show \
+   # Get URL from container instance
+   az container show \
      --resource-group rg-device-order-mgmt \
-     --name device-order-mgmt-app-dev \
+     --name device-order-mgmt-aci-dev \
      --query defaultHostName -o tsv
    ```
 
 2. **Test Health Endpoint**
    ```bash
-   curl https://device-order-mgmt-app-dev.azurewebsites.net/health
+   FQDN=$(az container show --resource-group rg-device-order-mgmt --name device-order-mgmt-aci-dev --query ipAddress.fqdn -o tsv)
+   curl http://${FQDN}:8080/health
    ```
    
    Expected response:
@@ -256,22 +260,29 @@ Located in `infra/main.bicep` and `infra/main.bicepparam`:
 
 3. **Access API Documentation**
    
-   Open in browser: `https://device-order-mgmt-app-dev.azurewebsites.net/api-docs`
+   Get container URL and open in browser:
+   ```bash
+   echo "http://${FQDN}:8080/api-docs"
+   ```
 
 ### Database Migration Management
 
-Migrations run automatically on deployment via `startup.sh`. To manage manually:
+Migrations run automatically on container startup via `startup.sh`. To manage manually:
 
 1. **View Migration Status**
    ```bash
-   az webapp ssh --resource-group rg-device-order-mgmt --name device-order-mgmt-app-dev
-   cd /home/site/wwwroot
-   npx prisma migrate status
+   az container exec \
+     --resource-group rg-device-order-mgmt \
+     --name device-order-mgmt-aci-dev \
+     --exec-command "npx prisma migrate status"
    ```
 
 2. **Apply Pending Migrations**
    ```bash
-   npx prisma migrate deploy
+   az container exec \
+     --resource-group rg-device-order-mgmt \
+     --name device-order-mgmt-aci-dev \
+     --exec-command "npx prisma migrate deploy"
    ```
 
 3. **Rollback** (if needed)
@@ -285,86 +296,79 @@ Migrations run automatically on deployment via `startup.sh`. To manage manually:
 To populate warehouses and test data:
 
 ```bash
-# SSH into App Service
-az webapp ssh --resource-group rg-device-order-mgmt --name device-order-mgmt-app-dev
-
-# Run seed script
-cd /home/site/wwwroot
-npm run db:seed
+# Execute seed command in container
+az container exec \
+  --resource-group rg-device-order-mgmt \
+  --name device-order-mgmt-aci-dev \
+  --exec-command "npm run db:seed"
 ```
 
 ## Monitoring and Logging
 
-### Application Logs
+### Container Logs
 
-1. **Stream Logs** (real-time)
+1. **View Logs** (follow/stream)
    ```bash
-   az webapp log tail \
+   az container logs \
      --resource-group rg-device-order-mgmt \
-     --name device-order-mgmt-app-dev
+     --name device-order-mgmt-aci-dev \
+     --follow
    ```
 
-2. **Download Logs**
+2. **View Logs** (one-time)
    ```bash
-   az webapp log download \
+   az container logs \
      --resource-group rg-device-order-mgmt \
-     --name device-order-mgmt-app-dev \
-     --log-file logs.zip
-   ```
-
-3. **Enable Application Logging**
-   ```bash
-   az webapp log config \
-     --resource-group rg-device-order-mgmt \
-     --name device-order-mgmt-app-dev \
-     --application-logging filesystem \
-     --level information
+     --name device-order-mgmt-aci-dev
    ```
 
 ### Azure Portal Monitoring
 
-1. Navigate to: Azure Portal → App Services → device-order-mgmt-app-dev
+1. Navigate to: Azure Portal → Container Instances → device-order-mgmt-aci-dev
 2. **Monitoring Options**:
-   - **Metrics**: CPU, Memory, HTTP requests, Response time
-   - **Log stream**: Live application logs
-   - **Diagnose and solve problems**: Troubleshooting wizard
+   - **Metrics**: CPU usage, Memory usage, Network bytes
+   - **Logs**: Container logs
+   - **Events**: Container lifecycle events
    - **Application Insights**: Advanced monitoring (optional, requires setup)
 
 ### Health Checks
 
-App Service automatically monitors `/health` endpoint:
+The container includes a Docker health check for `/health` endpoint:
 
-- **Check Interval**: 60 seconds
-- **Failure Threshold**: 10 attempts
-- **Action on Failure**: Instance restart
+- **Check Interval**: 30 seconds
+- **Timeout**: 10 seconds
+- **Start Period**: 60 seconds
+- **Retries**: 3 attempts
 
 ## Scaling and Performance
 
-### Vertical Scaling (Scale Up)
+### Vertical Scaling (Resource Adjustment)
 
-Change App Service Plan tier:
+Modify CPU and memory in `infra/aci.bicep`:
 
-```bash
-# Upgrade to P1V2 (Production tier)
-az appservice plan update \
-  --resource-group rg-device-order-mgmt \
-  --name device-order-mgmt-plan-dev \
-  --sku P1V2
+```bicep
+resources: {
+  requests: {
+    cpu: 2        // Increase from 1 to 2 cores
+    memoryInGB: 4 // Increase from 2 to 4 GB
+  }
+}
 ```
 
-### Horizontal Scaling (Scale Out)
-
-Increase number of instances:
-
+Then redeploy:
 ```bash
-# Scale to 2 instances
-az appservice plan update \
+az deployment group create \
   --resource-group rg-device-order-mgmt \
-  --name device-order-mgmt-plan-dev \
-  --number-of-workers 2
+  --template-file ./infra/aci.bicep \
+  --parameters ...
 ```
 
-**Note**: B1 Basic tier supports up to 3 instances. For auto-scaling, upgrade to Standard (S1) or Premium (P1V2) tiers.
+### Horizontal Scaling
+
+**Note**: Azure Container Instances don't support built-in horizontal scaling. For production workloads requiring horizontal scaling, consider:
+- Azure Kubernetes Service (AKS)
+- Azure Container Apps (supports auto-scaling)
+- Azure App Service (with App Service Plan scaling)
 
 ## Security Best Practices
 
@@ -375,12 +379,12 @@ az appservice plan update \
 - ✅ Use strong passwords and rotate regularly
 - ✅ Enable database backups
 
-### 2. App Service Security
+### 2. Container Security
 
-- ✅ HTTPS only (already configured in Bicep)
-- ✅ Minimum TLS 1.2 (already configured)
-- ✅ Disable FTP (already configured)
-- ✅ Enable Managed Identity for Azure resources (if needed)
+- ✅ Use minimal base images (Node.js Alpine)
+- ✅ ACR with admin credentials (consider managed identity for production)
+- ✅ Environment variables for secrets (stored in ACI)
+- ✅ Network security groups for container group (if needed)
 
 ### 3. GitHub Secrets Security
 
@@ -407,13 +411,13 @@ az appservice plan update \
 **Solution**:
 ```bash
 # Check database firewall allows Azure services
-# Add App Service outbound IPs to database whitelist
+# Add container instance outbound IP to database whitelist
 
-# Get App Service outbound IPs
-az webapp show \
+# Get container instance IP
+az container show \
   --resource-group rg-device-order-mgmt \
-  --name device-order-mgmt-app-dev \
-  --query outboundIpAddresses -o tsv
+  --name device-order-mgmt-aci-dev \
+  --query ipAddress.ip -o tsv
 ```
 
 #### 2. Migrations Fail on Startup
@@ -422,36 +426,39 @@ az webapp show \
 
 **Solution**:
 ```bash
-# SSH into App Service
-az webapp ssh --resource-group rg-device-order-mgmt --name device-order-mgmt-app-dev
+# Check container logs
+az container logs \
+  --resource-group rg-device-order-mgmt \
+  --name device-order-mgmt-aci-dev
 
-# Check migration status
-cd /home/site/wwwroot
-npx prisma migrate status
-
-# Reset migrations (caution: data loss)
-npx prisma migrate reset --force
-npx prisma migrate deploy
+# Execute migration manually
+az container exec \
+  --resource-group rg-device-order-mgmt \
+  --name device-order-mgmt-aci-dev \
+  --exec-command "npx prisma migrate deploy"
 ```
 
-#### 3. Application Not Starting
+#### 3. Container Not Starting
 
-**Error**: Container didn't respond to HTTP pings
+**Error**: Container in waiting/failed state
 
 **Solution**:
 ```bash
-# Check application logs
-az webapp log tail \
+# Check container state and logs
+az container show \
   --resource-group rg-device-order-mgmt \
-  --name device-order-mgmt-app-dev
+  --name device-order-mgmt-aci-dev \
+  --query instanceView.state -o tsv
 
-# Verify startup command
-az webapp config show \
+az container logs \
   --resource-group rg-device-order-mgmt \
-  --name device-order-mgmt-app-dev \
-  --query "appCommandLine"
+  --name device-order-mgmt-aci-dev
 
-# Should be: npm run start:azure
+# Check events
+az container show \
+  --resource-group rg-device-order-mgmt \
+  --name device-order-mgmt-aci-dev \
+  --query instanceView.events
 ```
 
 #### 4. GitHub Actions Deployment Fails
@@ -472,25 +479,30 @@ az ad sp create-for-rbac \
 
 ## Cost Estimation
 
-### Monthly Costs (B1 Basic Tier)
+### Monthly Costs (ACI)
+
+**Note**: ACI pricing is pay-per-use based on vCPU-seconds and GB-seconds.
 
 | Service | Configuration | Estimated Cost |
 |---------|---------------|----------------|
-| App Service Plan B1 | 1 instance, 1.75GB RAM, 10GB storage | ~$13/month |
-| **Total Azure** | | **~$13/month** |
+| Azure Container Registry (Basic) | Basic tier | ~$5/month |
+| Azure Container Instance | 1 vCPU, 2GB RAM, 24/7 uptime | ~$35/month |
+| **Total Azure** | | **~$40/month** |
 | Database | External (your responsibility) | Variable |
+
+**Calculation**: ACI pricing for 1 vCPU @ $0.0000012/sec + 2GB @ $0.0000001/sec = ~$0.048/hour = ~$35/month
 
 ### Cost Optimization Tips
 
 1. **Development Environment**
-   - Use Free tier (F1) for non-production: `az appservice plan update --sku F1`
-   - Stop App Service during non-business hours
-   - Share App Service Plan across multiple apps
+   - Delete container instances when not in use (`restartPolicy: Never` already configured)
+   - Use smaller resource allocations (0.5 vCPU, 1GB RAM)
+   - Share ACR across environments
 
 2. **Production Environment**
-   - Use Reserved Instances for 30-70% savings
-   - Enable auto-scaling to optimize resource usage
-   - Monitor and right-size based on actual usage
+   - Consider Azure Container Apps for better pricing with auto-scaling
+   - Use spot containers if workload allows interruptions
+   - Monitor resource usage and right-size CPU/memory
 
 ## Updating and Maintenance
 
@@ -506,17 +518,17 @@ git push origin main
 
 ### Updating Infrastructure
 
-Modify `infra/main.bicep` and push:
+Modify Bicep templates and push:
 
 ```bash
-# Edit Bicep file
-vim infra/main.bicep
+# Edit Bicep files
+vim infra/acr.bicep  # or infra/aci.bicep
 
 # Test locally
 az deployment group validate \
   --resource-group rg-device-order-mgmt \
-  --template-file ./infra/main.bicep \
-  --parameters @infra/main.bicepparam
+  --template-file ./infra/aci.bicep \
+  --parameters environmentName=dev location=southeastasia applicationName=device-order-mgmt databaseUrl="..."
 
 # Deploy via GitHub Actions or manually
 git add infra/
@@ -546,8 +558,9 @@ git push origin main
    # Restore from Git (infrastructure and code)
    git clone https://github.com/pacozaa/DeviceOrderManagement.git
    
-   # Redeploy infrastructure
-   az deployment group create --template-file ./infra/main.bicep ...
+   # Redeploy infrastructure (ACR then ACI)
+   az deployment group create --template-file ./infra/acr.bicep ...
+   az deployment group create --template-file ./infra/aci.bicep ...
    
    # Restore database
    psql -h host -U user -d database < backup.sql
@@ -572,7 +585,10 @@ To deploy multiple environments (dev, staging, prod):
    # Via GitHub Actions: Use workflow_dispatch and select environment
    # Via CLI: Change environmentName parameter
    az deployment group create \
-     --template-file ./infra/main.bicep \
+     --template-file ./infra/acr.bicep \
+     --parameters environmentName=staging ...
+   az deployment group create \
+     --template-file ./infra/aci.bicep \
      --parameters environmentName=staging ...
    ```
 
@@ -580,20 +596,21 @@ To deploy multiple environments (dev, staging, prod):
 
 ### Azure Documentation
 
-- [App Service Documentation](https://learn.microsoft.com/en-us/azure/app-service/)
+- [Azure Container Instances Documentation](https://learn.microsoft.com/en-us/azure/container-instances/)
+- [Azure Container Registry Documentation](https://learn.microsoft.com/en-us/azure/container-registry/)
 - [Bicep Documentation](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/)
 - [Azure CLI Reference](https://learn.microsoft.com/en-us/cli/azure/)
 
 ### Project Resources
 
-- **API Documentation**: `https://{your-app}.azurewebsites.net/api-docs`
+- **API Documentation**: `http://{container-fqdn}:8080/api-docs`
 - **GitHub Repository**: https://github.com/pacozaa/DeviceOrderManagement
 - **Tech Stack**: See `docs/tech-stack.md`
 - **API Reference**: See `docs/API.md`
 
 ### Getting Help
 
-1. Check application logs: `az webapp log tail`
+1. Check container logs: `az container logs --resource-group rg-device-order-mgmt --name device-order-mgmt-aci-dev`
 2. Review GitHub Actions workflow logs
 3. Check Azure Portal diagnostics
 4. Review this deployment guide
@@ -605,20 +622,20 @@ To deploy multiple environments (dev, staging, prod):
 ### Essential Commands
 
 ```bash
-# Deploy to Azure (manual)
-az deployment group create --resource-group rg-device-order-mgmt --template-file ./infra/main.bicep --parameters @infra/main.bicepparam databaseUrl="..."
+# Deploy ACR (manual)
+az deployment group create --resource-group rg-device-order-mgmt --template-file ./infra/acr.bicep --parameters environmentName=dev
 
-# View application URL
-az webapp show --resource-group rg-device-order-mgmt --name device-order-mgmt-app-dev --query defaultHostName -o tsv
+# Deploy ACI (manual)
+az deployment group create --resource-group rg-device-order-mgmt --template-file ./infra/aci.bicep --parameters environmentName=dev databaseUrl="..."
 
-# Stream logs
-az webapp log tail --resource-group rg-device-order-mgmt --name device-order-mgmt-app-dev
+# View container URL
+az container show --resource-group rg-device-order-mgmt --name device-order-mgmt-aci-dev --query ipAddress.fqdn -o tsv
 
-# SSH into App Service
-az webapp ssh --resource-group rg-device-order-mgmt --name device-order-mgmt-app-dev
+# View logs
+az container logs --resource-group rg-device-order-mgmt --name device-order-mgmt-aci-dev --follow
 
-# Restart App Service
-az webapp restart --resource-group rg-device-order-mgmt --name device-order-mgmt-app-dev
+# Restart container
+az container restart --resource-group rg-device-order-mgmt --name device-order-mgmt-aci-dev
 
 # Delete all resources
 az group delete --name rg-device-order-mgmt --yes --no-wait
@@ -626,10 +643,14 @@ az group delete --name rg-device-order-mgmt --yes --no-wait
 
 ### Application URLs
 
-After deployment, access your application at:
+After deployment, get your container FQDN:
 
-- **Application**: `https://device-order-mgmt-app-{env}.azurewebsites.net`
-- **Health Check**: `https://device-order-mgmt-app-{env}.azurewebsites.net/health`
-- **API Docs**: `https://device-order-mgmt-app-{env}.azurewebsites.net/api-docs`
+```bash
+FQDN=$(az container show --resource-group rg-device-order-mgmt --name device-order-mgmt-aci-dev --query ipAddress.fqdn -o tsv)
+```
 
-Replace `{env}` with your environment name (dev/staging/prod).
+Then access your application at:
+
+- **Application**: `http://${FQDN}:8080`
+- **Health Check**: `http://${FQDN}:8080/health`
+- **API Docs**: `http://${FQDN}:8080/api-docs`
