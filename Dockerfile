@@ -45,8 +45,16 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 # Copy built application
 COPY --from=builder /app/dist ./dist
 
-# Expose port
-EXPOSE 3000
+# Copy startup script
+COPY startup.sh ./
+RUN chmod +x startup.sh
 
-# Run migrations, seed data, and start
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run db:seed && node dist/index.js"]
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Run startup script
+CMD ["sh", "startup.sh"]
