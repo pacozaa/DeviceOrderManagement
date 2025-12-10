@@ -22,56 +22,9 @@ env:
   AZURE_LOCATION: 'southeastasia'
 
 jobs:
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma Client
-        run: npx prisma generate
-
-      - name: Run database migrations
-        run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-
-      - name: Run tests
-        run: npm test
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          NODE_ENV: test
-
   build:
     name: Build Application
     runs-on: ubuntu-latest
-    needs: test
     
     steps:
       - name: Checkout code
@@ -125,7 +78,7 @@ jobs:
     needs: build
     environment:
       name: ${{ github.event.inputs.environment || 'dev' }}
-      url: ${{ steps.deploy-infra.outputs.appServiceUrl }}
+      url: ${{ steps.deploy-infra.outputs.containerUrl }}
     
     steps:
       - name: Checkout code
@@ -142,7 +95,7 @@ jobs:
             --name ${{ env.AZURE_RESOURCE_GROUP }} \
             --location ${{ env.AZURE_LOCATION }}
 
-      - name: Deploy Infrastructure
+      - name: Deploy Infrastructure (ACR and ACI)
         id: deploy-infra
         uses: azure/arm-deploy@v1
         with:
@@ -158,6 +111,7 @@ jobs:
             deviceWeightKg=${{ secrets.DEVICE_WEIGHT_KG || '0.365' }}
             shippingRatePerKgPerKm=${{ secrets.SHIPPING_RATE_PER_KG_PER_KM || '0.01' }}
             maxShippingPercentage=${{ secrets.MAX_SHIPPING_PERCENTAGE || '0.15' }}
+            imageTag=placeholder
           failOnStdErr: false
 
       - name: Download artifact
@@ -166,30 +120,93 @@ jobs:
           name: app-build
           path: ./deploy
 
-      - name: Create deployment ZIP
+      - name: Login to Azure Container Registry
+        run: |
+          az acr login --name ${{ steps.deploy-infra.outputs.acrName }}
+
+      - name: Build and Push Docker Image
         run: |
           cd deploy
-          # Ensure all files are at root of ZIP
-          zip -r ../deploy.zip . -x "*.git*"
-          cd ..
-          # Verify ZIP contents
-          echo "ZIP contents:"
-          unzip -l deploy.zip | head -20
-
-      - name: Deploy to App Service
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: ${{ steps.deploy-infra.outputs.appServiceName }}
-          package: ./deploy.zip
-
-      - name: Run Database Migrations
-        run: |
-          echo "Waiting for App Service to be ready..."
-          sleep 30
           
-          # The migrations will run automatically via startup.sh
-          # This step verifies the deployment
-          curl -f https://${{ steps.deploy-infra.outputs.appServiceHostName }}/health || exit 1
+          # Create Dockerfile for deployment
+          cat > Dockerfile << 'EOF'
+          FROM node:20-alpine
+          
+          WORKDIR /app
+          
+          # Copy application files
+          COPY package*.json ./
+          COPY dist ./dist
+          COPY prisma ./prisma
+          COPY node_modules ./node_modules
+          COPY startup.sh ./
+          
+          # Make startup script executable
+          RUN chmod +x startup.sh
+          
+          # Expose port
+          EXPOSE 8080
+          
+          # Health check
+          HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+            CMD node -e "require('http').get('http://localhost:8080/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); })"
+          
+          # Start application
+          CMD ["sh", "startup.sh"]
+          EOF
+          
+          # Build and push image
+          IMAGE_TAG="${{ github.sha }}"
+          docker build -t ${{ steps.deploy-infra.outputs.acrLoginServer }}/device-order-mgmt:${IMAGE_TAG} .
+          docker build -t ${{ steps.deploy-infra.outputs.acrLoginServer }}/device-order-mgmt:latest .
+          docker push ${{ steps.deploy-infra.outputs.acrLoginServer }}/device-order-mgmt:${IMAGE_TAG}
+          docker push ${{ steps.deploy-infra.outputs.acrLoginServer }}/device-order-mgmt:latest
+
+      - name: Update Container Instance
+        run: |
+          IMAGE_TAG="${{ github.sha }}"
+          
+          # Delete existing container group to force recreation with new image
+          az container delete \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ steps.deploy-infra.outputs.containerGroupName }} \
+            --yes || true
+          
+          # Redeploy infrastructure with new image tag
+          az deployment group create \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --template-file ./infra/main.bicep \
+            --parameters \
+              environmentName=${{ github.event.inputs.environment || 'dev' }} \
+              location=${{ env.AZURE_LOCATION }} \
+              applicationName=device-order-mgmt \
+              databaseUrl="${{ secrets.DATABASE_URL }}" \
+              deviceName="${{ secrets.DEVICE_NAME || 'SCOS Station P1 Pro' }}" \
+              devicePrice="${{ secrets.DEVICE_PRICE || '150' }}" \
+              deviceWeightKg="${{ secrets.DEVICE_WEIGHT_KG || '0.365' }}" \
+              shippingRatePerKgPerKm="${{ secrets.SHIPPING_RATE_PER_KG_PER_KM || '0.01' }}" \
+              maxShippingPercentage="${{ secrets.MAX_SHIPPING_PERCENTAGE || '0.15' }}" \
+              imageTag="${IMAGE_TAG}"
+
+      - name: Wait for Container to be Ready
+        run: |
+          echo "Waiting for container to be ready..."
+          sleep 60
+          
+          CONTAINER_FQDN="${{ steps.deploy-infra.outputs.containerFqdn }}"
+          
+          # Wait for health check
+          for i in {1..30}; do
+            if curl -f "http://${CONTAINER_FQDN}:8080/health"; then
+              echo "Container is healthy!"
+              exit 0
+            fi
+            echo "Waiting for container to be ready... (attempt $i/30)"
+            sleep 10
+          done
+          
+          echo "Container failed to become healthy"
+          exit 1
 
       - name: Azure Logout
         if: always()

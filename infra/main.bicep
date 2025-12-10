@@ -26,26 +26,23 @@ param shippingRatePerKgPerKm string = '0.01'
 @description('Shipping configuration - Max shipping percentage')
 param maxShippingPercentage string = '0.15'
 
-@description('Node.js version for the runtime')
-param nodeVersion string = '20-lts'
+@description('Container image tag')
+param imageTag string = 'latest'
 
-var appServicePlanName = '${applicationName}-plan-${environmentName}'
-var appServiceName = '${applicationName}-app-${environmentName}'
-var appServiceSku = 'B1'
-var appServiceSkuTier = 'Basic'
+var acrName = '${replace(applicationName, '-', '')}acr${environmentName}'
+var containerGroupName = '${applicationName}-aci-${environmentName}'
+var containerName = '${applicationName}-container'
+var dnsLabel = '${applicationName}-${environmentName}-${uniqueString(resourceGroup().id)}'
 
-// App Service Plan (Linux)
-resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
-  name: appServicePlanName
+// Azure Container Registry
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
+  name: acrName
   location: location
-  kind: 'linux'
   sku: {
-    name: appServiceSku
-    tier: appServiceSkuTier
-    capacity: 1
+    name: 'Basic'
   }
   properties: {
-    reserved: true // Required for Linux
+    adminUserEnabled: true
   }
   tags: {
     environment: environmentName
@@ -53,65 +50,84 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
   }
 }
 
-// App Service (Web App)
-resource appService 'Microsoft.Web/sites@2022-09-01' = {
-  name: appServiceName
+// Azure Container Instance
+resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01' = {
+  name: containerGroupName
   location: location
-  kind: 'app,linux'
   properties: {
-    serverFarmId: appServicePlan.id
-    httpsOnly: true
-    siteConfig: {
-      linuxFxVersion: 'NODE|${nodeVersion}'
-      alwaysOn: false
-      ftpsState: 'Disabled'
-      minTlsVersion: '1.2'
-      http20Enabled: true
-      appCommandLine: 'bash startup.sh'
-      appSettings: [
-        {
-          name: 'NODE_ENV'
-          value: 'production'
+    containers: [
+      {
+        name: containerName
+        properties: {
+          image: '${containerRegistry.properties.loginServer}/${applicationName}:${imageTag}'
+          resources: {
+            requests: {
+              cpu: 1
+              memoryInGB: 2
+            }
+          }
+          ports: [
+            {
+              port: 8080
+              protocol: 'TCP'
+            }
+          ]
+          environmentVariables: [
+            {
+              name: 'NODE_ENV'
+              value: 'production'
+            }
+            {
+              name: 'PORT'
+              value: '8080'
+            }
+            {
+              name: 'DATABASE_URL'
+              secureValue: databaseUrl
+            }
+            {
+              name: 'DEVICE_NAME'
+              value: deviceName
+            }
+            {
+              name: 'DEVICE_PRICE'
+              value: devicePrice
+            }
+            {
+              name: 'DEVICE_WEIGHT_KG'
+              value: deviceWeightKg
+            }
+            {
+              name: 'SHIPPING_RATE_PER_KG_PER_KM'
+              value: shippingRatePerKgPerKm
+            }
+            {
+              name: 'MAX_SHIPPING_PERCENTAGE'
+              value: maxShippingPercentage
+            }
+          ]
         }
+      }
+    ]
+    osType: 'Linux'
+    restartPolicy: 'Always'
+    ipAddress: {
+      type: 'Public'
+      ports: [
         {
-          name: 'PORT'
-          value: '8080'
-        }
-        {
-          name: 'DATABASE_URL'
-          value: databaseUrl
-        }
-        {
-          name: 'DEVICE_NAME'
-          value: deviceName
-        }
-        {
-          name: 'DEVICE_PRICE'
-          value: devicePrice
-        }
-        {
-          name: 'DEVICE_WEIGHT_KG'
-          value: deviceWeightKg
-        }
-        {
-          name: 'SHIPPING_RATE_PER_KG_PER_KM'
-          value: shippingRatePerKgPerKm
-        }
-        {
-          name: 'MAX_SHIPPING_PERCENTAGE'
-          value: maxShippingPercentage
-        }
-        {
-          name: 'WEBSITE_NODE_DEFAULT_VERSION'
-          value: '~20'
-        }
-        {
-          name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
-          value: 'false'
+          port: 8080
+          protocol: 'TCP'
         }
       ]
-      healthCheckPath: '/health'
+      dnsNameLabel: dnsLabel
     }
+    imageRegistryCredentials: [
+      {
+        server: containerRegistry.properties.loginServer
+        username: containerRegistry.listCredentials().username
+        password: containerRegistry.listCredentials().passwords[0].value
+      }
+    ]
   }
   tags: {
     environment: environmentName
@@ -120,7 +136,8 @@ resource appService 'Microsoft.Web/sites@2022-09-01' = {
 }
 
 // Outputs
-output appServiceName string = appService.name
-output appServiceHostName string = appService.properties.defaultHostName
-output appServiceUrl string = 'https://${appService.properties.defaultHostName}'
-output appServicePlanName string = appServicePlan.name
+output containerGroupName string = containerGroup.name
+output containerFqdn string = containerGroup.properties.ipAddress.fqdn
+output containerUrl string = 'http://${containerGroup.properties.ipAddress.fqdn}:8080'
+output acrName string = containerRegistry.name
+output acrLoginServer string = containerRegistry.properties.loginServer

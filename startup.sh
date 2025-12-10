@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Azure App Service Startup Script
+# Container Startup Script
 # This script runs database migrations before starting the application
 # Note: Prisma binary permissions are fixed during deployment in GitHub Actions
 
@@ -8,8 +8,12 @@ set -e  # Exit on error
 
 echo "Starting application startup process..."
 
-# Navigate to application directory
-cd /home/site/wwwroot
+# Navigate to application directory (works for both App Service and Container Instances)
+if [ -d "/home/site/wwwroot" ]; then
+  cd /home/site/wwwroot
+else
+  cd /app
+fi
 
 # Verify critical files exist
 echo "Verifying deployment files..."
