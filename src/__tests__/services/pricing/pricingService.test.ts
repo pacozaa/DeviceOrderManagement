@@ -4,7 +4,9 @@ import {
   calculateDiscountAmount,
   calculateTotal,
   isShippingCostValid,
+  calculatePricing,
 } from '../../../services/pricing';
+import { OrderAllocation } from '../../../types';
 
 // Mock config
 jest.mock('../../../config/config', () => ({
@@ -99,6 +101,113 @@ describe('pricingService', () => {
       const shippingCost = 1600; // 16%
 
       expect(isShippingCostValid(shippingCost, orderAmount)).toBe(false);
+    });
+  });
+
+  describe('calculatePricing', () => {
+    it('should calculate all pricing components correctly', () => {
+      const quantity = 100;
+      const allocations: OrderAllocation[] = [
+        {
+          warehouseId: 'wh1',
+          warehouseName: 'Warehouse 1',
+          quantity: 60,
+          distance: 100,
+          shippingCost: 300,
+        },
+        {
+          warehouseId: 'wh2',
+          warehouseName: 'Warehouse 2',
+          quantity: 40,
+          distance: 150,
+          shippingCost: 200,
+        },
+      ];
+
+      const result = calculatePricing(quantity, allocations);
+
+      expect(result.subtotal).toBe(15000); // 100 * 150
+      expect(result.discount).toBe(0.15); // 15% for 100+ units
+      expect(result.discountAmount).toBe(2250); // 15000 * 0.15
+      expect(result.shippingCost).toBe(500); // 300 + 200
+      expect(result.total).toBe(13250); // 15000 - 2250 + 500
+    });
+
+    it('should calculate pricing with no discount', () => {
+      const quantity = 10;
+      const allocations: OrderAllocation[] = [
+        {
+          warehouseId: 'wh1',
+          warehouseName: 'Warehouse 1',
+          quantity: 10,
+          distance: 50,
+          shippingCost: 100,
+        },
+      ];
+
+      const result = calculatePricing(quantity, allocations);
+
+      expect(result.subtotal).toBe(1500); // 10 * 150
+      expect(result.discount).toBe(0); // No discount for < 25 units
+      expect(result.discountAmount).toBe(0);
+      expect(result.shippingCost).toBe(100);
+      expect(result.total).toBe(1600); // 1500 - 0 + 100
+    });
+
+    it('should calculate pricing with maximum discount', () => {
+      const quantity = 300;
+      const allocations: OrderAllocation[] = [
+        {
+          warehouseId: 'wh1',
+          warehouseName: 'Warehouse 1',
+          quantity: 300,
+          distance: 80,
+          shippingCost: 750,
+        },
+      ];
+
+      const result = calculatePricing(quantity, allocations);
+
+      expect(result.subtotal).toBe(45000); // 300 * 150
+      expect(result.discount).toBe(0.2); // 20% for 250+ units
+      expect(result.discountAmount).toBe(9000); // 45000 * 0.2
+      expect(result.shippingCost).toBe(750);
+      expect(result.total).toBe(36750); // 45000 - 9000 + 750
+    });
+
+    it('should handle multiple allocations correctly', () => {
+      const quantity = 250;
+      const allocations: OrderAllocation[] = [
+        {
+          warehouseId: 'wh1',
+          warehouseName: 'Warehouse 1',
+          quantity: 100,
+          distance: 100,
+          shippingCost: 400,
+        },
+        {
+          warehouseId: 'wh2',
+          warehouseName: 'Warehouse 2',
+          quantity: 100,
+          distance: 120,
+          shippingCost: 450,
+        },
+        {
+          warehouseId: 'wh3',
+          warehouseName: 'Warehouse 3',
+          quantity: 50,
+          distance: 90,
+          shippingCost: 250,
+        },
+      ];
+
+      const result = calculatePricing(quantity, allocations);
+
+      expect(result.subtotal).toBe(37500); // 250 * 150
+      expect(result.discount).toBe(0.2); // 20% for 250+ units
+      expect(result.discountAmount).toBe(7500); // 37500 * 0.2
+      expect(result.shippingCost).toBe(1100); // 400 + 450 + 250
+      expect(result.total).toBe(31100); // 37500 - 7500 + 1100
     });
   });
 });

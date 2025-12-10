@@ -1,9 +1,6 @@
 import prisma from '../../config/database';
 import { AppError } from '../../middleware/errorHandler';
 
-/**
- * Get order by ID
- */
 export async function getOrderById(orderId: string) {
   const order = await prisma.order.findUnique({
     where: { id: orderId },

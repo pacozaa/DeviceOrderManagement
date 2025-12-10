@@ -4,14 +4,8 @@ import { updateWarehouseStock, getWarehousesForAllocation } from '../warehouse';
 import prisma from '../../config/database';
 import { AppError } from '../../middleware/errorHandler';
 import { logger } from '../../utils/logger';
-import { calculateOptimalAllocation, calculateTotalShippingCost } from '../allocation';
-import {
-  calculateDiscount,
-  calculateSubtotal,
-  calculateDiscountAmount,
-  calculateTotal,
-  isShippingCostValid,
-} from '../pricing';
+import { calculateOptimalAllocation } from '../allocation';
+import { calculatePricing, isShippingCostValid } from '../pricing';
 
 /**
  * Generate unique order number
@@ -54,12 +48,11 @@ export async function createOrder(
     }
 
     // Calculate pricing
-    const subtotal = calculateSubtotal(quantity);
-    const discount = calculateDiscount(quantity);
-    const discountAmount = calculateDiscountAmount(subtotal, discount);
+    const { subtotal, discount, discountAmount, shippingCost, total } = calculatePricing(
+      quantity,
+      allocations
+    );
     const orderAmount = subtotal - discountAmount;
-    const shippingCost = calculateTotalShippingCost(allocations);
-    const total = calculateTotal(subtotal, discountAmount, shippingCost);
 
     // Validate shipping cost
     if (!isShippingCostValid(shippingCost, orderAmount)) {

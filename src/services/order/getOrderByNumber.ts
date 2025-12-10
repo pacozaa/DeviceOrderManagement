@@ -1,9 +1,6 @@
 import prisma from '../../config/database';
 import { AppError } from '../../middleware/errorHandler';
 
-/**
- * Get order by order number
- */
 export async function getOrderByNumber(orderNumber: string) {
   const order = await prisma.order.findUnique({
     where: { orderNumber },
