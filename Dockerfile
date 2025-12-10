@@ -36,6 +36,9 @@ COPY prisma ./prisma/
 # Install production dependencies only
 RUN npm ci --only=production
 
+# Install tsx for running seed script
+RUN npm install tsx
+
 # Copy Prisma generated files
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
@@ -45,5 +48,5 @@ COPY --from=builder /app/dist ./dist
 # Expose port
 EXPOSE 3000
 
-# Run migrations and start
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+# Run migrations, seed data, and start
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run db:seed && node dist/index.js"]

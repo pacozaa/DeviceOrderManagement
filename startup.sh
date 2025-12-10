@@ -52,6 +52,12 @@ npx prisma migrate deploy
 
 echo "Migrations completed successfully"
 
+# Seed the database
+echo "Seeding database..."
+npm run db:seed
+
+echo "Database seeded successfully"
+
 # Start the application
 echo "Starting application on port ${PORT:-8080}..."
 node dist/index.js
