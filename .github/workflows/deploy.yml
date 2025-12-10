@@ -78,7 +78,7 @@ jobs:
     needs: build
     environment:
       name: ${{ github.event.inputs.environment || 'dev' }}
-      url: ${{ steps.deploy-infra.outputs.containerUrl }}
+      url: ${{ steps.deploy-aci.outputs.containerUrl }}
     
     steps:
       - name: Checkout code
@@ -95,23 +95,16 @@ jobs:
             --name ${{ env.AZURE_RESOURCE_GROUP }} \
             --location ${{ env.AZURE_LOCATION }}
 
-      - name: Deploy Infrastructure (ACR and ACI)
-        id: deploy-infra
+      - name: Deploy Azure Container Registry
+        id: deploy-acr
         uses: azure/arm-deploy@v1
         with:
           resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP }}
-          template: ./infra/main.bicep
+          template: ./infra/acr.bicep
           parameters: >
             environmentName=${{ github.event.inputs.environment || 'dev' }}
             location=${{ env.AZURE_LOCATION }}
             applicationName=device-order-mgmt
-            databaseUrl=${{ secrets.DATABASE_URL }}
-            deviceName="${{ secrets.DEVICE_NAME || 'SCOS Station P1 Pro' }}"
-            devicePrice=${{ secrets.DEVICE_PRICE || '150' }}
-            deviceWeightKg=${{ secrets.DEVICE_WEIGHT_KG || '0.365' }}
-            shippingRatePerKgPerKm=${{ secrets.SHIPPING_RATE_PER_KG_PER_KM || '0.01' }}
-            maxShippingPercentage=${{ secrets.MAX_SHIPPING_PERCENTAGE || '0.15' }}
-            imageTag=placeholder
           failOnStdErr: false
 
       - name: Download artifact
@@ -122,7 +115,7 @@ jobs:
 
       - name: Login to Azure Container Registry
         run: |
-          az acr login --name ${{ steps.deploy-infra.outputs.acrName }}
+          az acr login --name ${{ steps.deploy-acr.outputs.acrName }}
 
       - name: Build and Push Docker Image
         run: |
@@ -157,43 +150,37 @@ jobs:
           
           # Build and push image
           IMAGE_TAG="${{ github.sha }}"
-          docker build -t ${{ steps.deploy-infra.outputs.acrLoginServer }}/device-order-mgmt:${IMAGE_TAG} .
-          docker build -t ${{ steps.deploy-infra.outputs.acrLoginServer }}/device-order-mgmt:latest .
-          docker push ${{ steps.deploy-infra.outputs.acrLoginServer }}/device-order-mgmt:${IMAGE_TAG}
-          docker push ${{ steps.deploy-infra.outputs.acrLoginServer }}/device-order-mgmt:latest
+          docker build -t ${{ steps.deploy-acr.outputs.acrLoginServer }}/device-order-mgmt:${IMAGE_TAG} .
+          docker build -t ${{ steps.deploy-acr.outputs.acrLoginServer }}/device-order-mgmt:latest .
+          docker push ${{ steps.deploy-acr.outputs.acrLoginServer }}/device-order-mgmt:${IMAGE_TAG}
+          docker push ${{ steps.deploy-acr.outputs.acrLoginServer }}/device-order-mgmt:latest
 
-      - name: Update Container Instance
-        run: |
-          IMAGE_TAG="${{ github.sha }}"
-          
-          # Delete existing container group to force recreation with new image
-          az container delete \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --name ${{ steps.deploy-infra.outputs.containerGroupName }} \
-            --yes || true
-          
-          # Redeploy infrastructure with new image tag
-          az deployment group create \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --template-file ./infra/main.bicep \
-            --parameters \
-              environmentName=${{ github.event.inputs.environment || 'dev' }} \
-              location=${{ env.AZURE_LOCATION }} \
-              applicationName=device-order-mgmt \
-              databaseUrl="${{ secrets.DATABASE_URL }}" \
-              deviceName="${{ secrets.DEVICE_NAME || 'SCOS Station P1 Pro' }}" \
-              devicePrice="${{ secrets.DEVICE_PRICE || '150' }}" \
-              deviceWeightKg="${{ secrets.DEVICE_WEIGHT_KG || '0.365' }}" \
-              shippingRatePerKgPerKm="${{ secrets.SHIPPING_RATE_PER_KG_PER_KM || '0.01' }}" \
-              maxShippingPercentage="${{ secrets.MAX_SHIPPING_PERCENTAGE || '0.15' }}" \
-              imageTag="${IMAGE_TAG}"
+      - name: Deploy Container Instance
+        id: deploy-aci
+        uses: azure/arm-deploy@v1
+        with:
+          resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP }}
+          template: ./infra/aci.bicep
+          parameters: >
+            environmentName=${{ github.event.inputs.environment || 'dev' }}
+            location=${{ env.AZURE_LOCATION }}
+            applicationName=device-order-mgmt
+            databaseUrl=${{ secrets.DATABASE_URL }}
+            deviceName="${{ secrets.DEVICE_NAME || 'SCOS Station P1 Pro' }}"
+            devicePrice=${{ secrets.DEVICE_PRICE || '150' }}
+            deviceWeightKg=${{ secrets.DEVICE_WEIGHT_KG || '0.365' }}
+            shippingRatePerKgPerKm=${{ secrets.SHIPPING_RATE_PER_KG_PER_KM || '0.01' }}
+            maxShippingPercentage=${{ secrets.MAX_SHIPPING_PERCENTAGE || '0.15' }}
+            imageTag=${{ github.sha }}
+            acrLoginServer=${{ steps.deploy-acr.outputs.acrLoginServer }}
+          failOnStdErr: false
 
       - name: Wait for Container to be Ready
         run: |
           echo "Waiting for container to be ready..."
           sleep 60
           
-          CONTAINER_FQDN="${{ steps.deploy-infra.outputs.containerFqdn }}"
+          CONTAINER_FQDN="${{ steps.deploy-aci.outputs.containerFqdn }}"
           
           # Wait for health check
           for i in {1..30}; do

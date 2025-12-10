@@ -350,6 +350,11 @@ screncloud/
 - ✅ CI/CD pipeline (GitHub Actions)
 - ✅ Environment configuration
 - ✅ Health check endpoint
+- ✅ Deployed to Azure Container Instances
+- ✅ Infrastructure as Code (Azure Bicep)
+- ✅ Container Registry for image management
+- ✅ Automated database migrations
+- ✅ Managed PostgreSQL database
 
 ### Future Enhancements
 - Add Redis caching for warehouse data
@@ -359,15 +364,41 @@ screncloud/
 - Add monitoring and alerting (e.g., Prometheus, Grafana)
 - Implement order status tracking and webhooks
 - Add pagination for order listing endpoints
-- Deploy to cloud provider (AWS ECS, GCP Cloud Run, or Azure App Service)
-- Set up managed database (RDS, Cloud SQL, or Azure Database)
 - Implement automated backups
-- Add API documentation with Swagger/OpenAPI
 
 ## CI/CD
 
-The project includes a GitHub Actions workflow that:
-- Runs tests on every push and pull request
+The project includes GitHub Actions workflows:
+
+### CI Pipeline (`ci.yml`)
+- Runs tests on every push and pull request to main/develop
 - Performs linting and type checking
 - Builds the Docker image
-- Can be extended to deploy to cloud providers
+- Runs database migrations for testing
+
+### Deployment Pipeline (`deploy.yml`)
+- Builds the application and creates deployment package
+- Deploys infrastructure using Azure Bicep (IaC)
+- Pushes Docker image to Azure Container Registry (ACR)
+- Deploys to Azure Container Instances (ACI)
+- Runs database migrations automatically on container start
+- Performs health checks to verify deployment
+
+### Azure Infrastructure
+- **Resource Group**: `rg-device-order-mgmt`
+- **Container Registry**: Stores Docker images
+- **Container Instances**: Runs the application container
+- **External PostgreSQL**: Managed database (configured via secrets)
+- **Region**: Southeast Asia
+
+### Deployment
+The application is deployed to Azure Container Instances with:
+- Automatic container restarts on failure
+- Public IP with DNS name
+- Environment variables for configuration
+- Database migrations run on container startup via `startup.sh`
+
+To deploy:
+1. Configure GitHub secrets (AZURE_CREDENTIALS, DATABASE_URL, etc.)
+2. Push to main branch or trigger manual deployment
+3. Choose environment (dev/staging/prod)
