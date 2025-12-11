@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
+// import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
 import { config } from './config/config';
 import { logger } from './utils/logger';
@@ -11,7 +11,7 @@ import { swaggerSpec } from './config/swagger.config';
 const app = express();
 
 // Middleware
-app.use(helmet());
+// app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
