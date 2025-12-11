@@ -1,6 +1,17 @@
 # ScreenCloud Order Management System
 
-A production-ready backend system for managing SCOS device orders with intelligent warehouse allocation and shipping cost optimization.
+## Description
+A production-ready backend system for managing SCOS device orders with intelligent warehouse allocation and shipping cost optimization. The implementation is rather simple and straightforward to meet the core requirements without over-engineering. Monolithic architecture is used for simplicity and ease of understanding. The codebase split into modules (controllers, services, routes, utils) to maintain separation of concerns. And inside each module, the code is organized by feature (orders, warehouses, pricing, allocation) to keep related logic together.
+
+## Improvement
+- Improve [api](src/__tests__/api) testing to use less mocking and more real database interactions.
+- Improve test coverage especially order services and allocation logic.
+- Refactor the functions to consistently use try catch for error handling. Also improve test to cover error scenarios.
+- Target improvement architecture diagram is show [here](Order.png) 
+   - The architecture diagram shows that if warehouses and products are scaling up(e.g., hundreds of warehouses, thousands of products), we can introduce caching layer (e.g., Redis). 
+   - To speed things up further if numbers of warehouses are scaling up significantly, we can introduce calculation table to precompute distances between warehouses and popular shipping zones. Because distances between two coordinates are static, we can precompute and store them in a fast lookup table(e.g., Redis) to avoid recalculating them on every order request. This will significantly reduce computation time during warehouse allocation.
+   - We can also introduce message queue (e.g., Azure Service Bus) to handle high volume order processing asynchronously(not include in the diagram). and Read replica database to offload read traffic from primary database especially for verifying service.
+- The current deployment uses Azure Container Instances for simplicity. For more robust production deployment, we can consider using Azure Container Apps for better scalability, load balancing, and management features.
 
 ## Features
 
@@ -355,16 +366,6 @@ screncloud/
 - ✅ Container Registry for image management
 - ✅ Automated database migrations
 - ✅ Managed PostgreSQL database
-
-### Future Enhancements
-- Add Redis caching for warehouse data
-- Implement rate limiting
-- Add API authentication/authorization
-- Implement optimistic locking for high-concurrency scenarios
-- Add monitoring and alerting (e.g., Prometheus, Grafana)
-- Implement order status tracking and webhooks
-- Add pagination for order listing endpoints
-- Implement automated backups
 
 ## CI/CD
 
