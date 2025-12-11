@@ -8,6 +8,8 @@ A production-ready backend system for managing SCOS device orders with intellige
 ## Improvement
 - Improve [api](src/__tests__/api) testing to use less mocking and more real database interactions.
 - Improve test coverage especially order services and allocation logic.
+- Improve load testing to simulate high concurrency order submissions to verify locking and transaction safety using K6.
+- Improve logging to include more context information (e.g., request IDs, user IDs) for better traceability.
 - Refactor the functions to consistently use try catch for error handling. Also improve test to cover error scenarios.
 - Target improvement architecture diagram is show [here](Order.png) 
    - The architecture diagram shows that if warehouses and products are scaling up(e.g., hundreds of warehouses, thousands of products), we can introduce caching layer (e.g., Redis). 
