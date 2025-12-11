@@ -1,4 +1,4 @@
-# ScreenCloud Order Management System
+# Order Management System
 
 ## Description
 A production-ready backend system for managing SCOS device orders with intelligent warehouse allocation and shipping cost optimization. The implementation is rather simple and straightforward to meet the core requirements without over-engineering. Monolithic architecture is used for simplicity and ease of understanding. The codebase split into modules (controllers, services, routes, utils) to maintain separation of concerns. And inside each module, the code is organized by feature (orders, warehouses, pricing, allocation) to keep related logic together.
