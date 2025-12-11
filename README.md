@@ -24,7 +24,7 @@ A production-ready backend system for managing SCOS device orders with intellige
 - **Smart Allocation**: Optimizes warehouse selection to minimize shipping costs
 - **Volume Discounts**: Automatic discount application based on order quantity
 - **Transaction Safety**: ACID-compliant database operations with Prisma
-- **Comprehensive Testing**: Unit tests, integration tests, and API tests
+- **Comprehensive Testing**: Unit tests and API tests
 - **Docker Support**: Easy local development and deployment with Docker Compose
 - **CI/CD Ready**: GitHub Actions workflow included
 
