@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-// import helmet from 'helmet';
+import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
 import { config } from './config/config';
 import { logger } from './utils/logger';
@@ -11,7 +11,12 @@ import { swaggerSpec } from './config/swagger.config';
 const app = express();
 
 // Middleware
-// app.use(helmet());
+app.use(
+  helmet({
+    crossOriginOpenerPolicy: false, // Disable COOP to avoid issues with Swagger UI
+    contentSecurityPolicy: false, // Disable CSP for Swagger UI to work properly
+  })
+);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -29,6 +34,10 @@ app.use(
   swaggerUi.setup(swaggerSpec, {
     customCss: '.swagger-ui .topbar { display: none }',
     customSiteTitle: 'ScreenCloud Order Management API',
+    customfavIcon: '/favicon.ico', // Use relative path to avoid HTTPS issues
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
   })
 );
 
@@ -41,6 +50,11 @@ app.get('/api-docs.json', (_, res) => {
 // Health check
 app.get('/health', (_, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Favicon handler (prevents 404 errors)
+app.get('/favicon.ico', (_, res) => {
+  res.status(204).end();
 });
 
 // Routes
